@@ -1,4 +1,4 @@
-# hebrew-hp-extraction
+# hp-extraction
 
 Claude Skill для извлечения ивритского текста из PDF-исходника «Гарри Поттера» и сборки в структурированный markdown.
 
@@ -21,11 +21,11 @@ Claude Skill для извлечения ивритского текста из 
 ## Структура
 
 ```
-hebrew-hp-extraction/
+hp-extraction/
 ├── SKILL.md                — основная инструкция
 ├── README.md
 └── references/
-    └── HP_ch1_20_25.md                 — образец результата (страницы 20–25)
+    └── HP_ch1_20_25.md     — образец результата (страницы 20–25)
 ```
 
 ## Пример задания
@@ -36,6 +36,6 @@ hebrew-hp-extraction/
 
 Этот skill — первый этап в пайплайне обработки ивритского Гарри Поттера:
 
-1. **hebrew-hp-extraction** ← вы здесь
-2. [hebrew-hp-translate](../hebrew-hp-translate) — добавление огласовок и переводов
-3. [hebrew-hp-style-guide](../hebrew-hp-style-guide) — пополнение визуального стайлгайда
+1. **hp-extraction** ← вы здесь
+2. [hp-translate](../hp-translate) — добавление огласовок и переводов
+3. [hp-chapter-style](../hp-chapter-style) — визуальный стайлгайд главы

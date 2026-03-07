@@ -1,4 +1,4 @@
-# hebrew-hp-source-texts
+# hp-source-texts
 
 Claude Skill для поиска английского оригинала и русского перевода (Росмэн) нужной главы Гарри Поттера в Project Knowledge.
 
@@ -27,7 +27,7 @@ Claude Skill для поиска английского оригинала и р
 ## Структура
 
 ```
-hebrew-hp-source-texts/
+hp-source-texts/
 ├── SKILL.md    — основная инструкция
 └── README.md
 ```
@@ -36,6 +36,6 @@ hebrew-hp-source-texts/
 
 Этот skill — утилита, используемая другими skill'ами пайплайна:
 
-1. [hebrew-hp-extraction](../hp-extraction) — извлечение текста из PDF
-2. [hebrew-hp-translate](../hp-translate) — добавление огласовок и переводов ← **использует этот skill**
-3. [hebrew-hp-style-guide](../hp-chapter-style) — пополнение визуального стайлгайда
+1. [hp-extraction](../hp-extraction) — извлечение текста из PDF
+2. [hp-translate](../hp-translate) — добавление огласовок и переводов ← **использует этот skill**
+3. [hp-chapter-style](../hp-chapter-style) — визуальный стайлгайд главы
