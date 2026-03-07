@@ -34,10 +34,19 @@ hebrew-hp-translate/
 
 Markdown-файл, созданный skill'ом `hebrew-hp-extraction` (например, `HP_ch1_30_35.md`).
 
+### Зависимости
+
+Для секций «Литературный перевод» и «Различия переводов» требуются исходные тексты в Project Knowledge:
+- `HP_en_ch{N}.md` — английский оригинал главы
+- `HP_rosmen_ch{N}.md` — русский перевод Росмэн
+
+Поиск этих файлов описан в skill'е [hebrew-hp-source-texts](../hp-source-texts).
+
 ## Часть проекта
 
 Этот skill — второй этап в пайплайне обработки ивритского Гарри Поттера:
 
-1. [hebrew-hp-extraction](../hebrew-hp-extraction) — извлечение текста из PDF
+1. [hebrew-hp-extraction](../hp-extraction) — извлечение текста из PDF
 2. **hebrew-hp-translate** ← вы здесь
-3. [hebrew-hp-style-guide](../hebrew-hp-style-guide) — пополнение визуального стайлгайда
+   - зависимость: [hebrew-hp-source-texts](../hp-source-texts) — поиск английского и русского текстов
+3. [hebrew-hp-style-guide](../hp-chapter-style) — пополнение визуального стайлгайда
