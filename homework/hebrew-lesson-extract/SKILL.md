@@ -20,7 +20,7 @@ a structured Markdown file with classified slides.
 ## What it does
 
 1. Parses the PPTX file using `python-pptx`
-2. Classifies each slide (grammar, vocabulary, exercises, reading, images, jokes, etc.)
+2. Classifies each slide into one of 20 categories (grammar, exercises, reading, etc.)
 3. Extracts text with **nikud preserved** and tables as markdown
 4. Extracts images and saves them as files
 5. For image-based tasks (e.g. spot-the-difference), Claude describes the image directly
@@ -87,17 +87,52 @@ cp -r /home/claude/lesson_extract/images/ /mnt/user-data/outputs/images/
 
 The script classifies slides into these categories:
 
-| Category | What it detects |
-|---|---|
-| `grammar` | Russian explanatory text about grammar with Hebrew examples |
-| `vocabulary` | Table of new words (מילים חדשות) |
-| `conjugation` | Verb conjugation tables (with שורש, tense headers) |
-| `verb_summary` | Summary table grouping verbs by גזרות |
-| `shem_peula` | Verbal noun (שם פעולה) tables |
-| `exercise_*` | Various exercise types (fill-in, translate, table, choose) |
-| `reading` | Hebrew reading texts, dialogs, stories |
-| `image_task` | Slides with primarily images (spot-the-difference, etc.) |
-| `joke` | Jokes and humorous texts (גולם, חושם, חלם) |
+### Reference / Grammar
+| Category | Emoji | What it detects |
+|---|---|---|
+| `grammar` | 📖 | Russian explanatory text about grammar with Hebrew examples |
+| `vocabulary` | 📝 | Table of new words (מילים חדשות) |
+| `conjugation` | 📊 | Verb conjugation tables (with שורש, tense headers) |
+| `verb_summary` | 📊 | Summary table grouping verbs by גזרות |
+| `shem_peula` | 📊 | Verbal noun (שם פעולה) tables |
+| `numerals` | 🔢 | Numeral reference tables (שם מספר) from 10 to 90000 |
+| `prepositions` | 📖 | Preposition declension tables (מילת יחס + suffixes) |
+
+### Exercises
+| Category | Emoji | What it detects |
+|---|---|---|
+| `exercise_fill` | ✏️ | Fill-in-the-blank exercises (blanks in text) |
+| `exercise_translate` | ✏️ | Translation exercises (Russian sentences to translate) |
+| `exercise_table` | ✏️ | Table-based exercises (fill empty table cells) |
+| `exercise_choose` | ✏️ | Choose the correct word from options in parentheses |
+| `exercise_oged` | ✏️ | אוגד exercises (copula, specifically) |
+| `exercise_morphology` | ✏️ | Determine root/binyan/gzara from a verb form |
+| `exercise_transform` | ✏️ | Rewrite sentences in a different tense (no blanks) |
+| `exercise_writing` | ✏️ | Write a composition / essay (חיבור) |
+| `exercise_questions` | ✏️ | Answer questions about a reading text |
+
+### Texts / Other
+| Category | Emoji | What it detects |
+|---|---|---|
+| `reading` | 📖 | Hebrew reading texts, dialogs, stories |
+| `image_task` | 🖼️ | Slides with primarily images (spot-the-difference, etc.) |
+| `joke` | 😄 | Jokes and humorous texts (גולם, חושם, חלם) |
+| `other` | 📄 | Unclassified slides |
+
+## Classification logic (summary)
+
+The classifier works in phases, from most specific to most general:
+
+1. **Image-only** — very little text + image + no table → `image_task`
+2. **Instruction keywords** — early detection of exercise types by Hebrew instructions
+   (תתרגמו, תשלימו, תכתבו חיבור, תעשו לפי הדוגמה, תבחרו, etc.)
+3. **Table-based** — analyze table headers and empty cells to determine type
+4. **Blanks in text** — `_{2,}` pattern detects fill-in exercises
+5. **Translation detection** — numbered or unnumbered Russian sentences
+6. **Transform detection** — instruction keyword + no blanks = rewrite exercise
+7. **Grammar keywords** — Russian explanatory text with grammar terminology
+8. **Reading** — long predominantly-Hebrew text
+9. **Fallbacks** — by Russian/Hebrew character ratio
 
 ## Important notes
 
@@ -105,6 +140,8 @@ The script classifies slides into these categories:
   The script extracts text as-is, keeping all vowel points intact.
 - **RTL text**: Hebrew text may appear in different directions depending on the
   PPTX creation tool. The script extracts raw text without reordering.
+- **Underscore detection**: The script detects blanks as short as `__` (2+ underscores),
+  not just long `______` sequences. This catches all common blank formats.
 - **Classification is heuristic**: The script uses keyword and pattern matching.
   Some slides may be misclassified. Review and correct if needed.
 - **No enrichment**: This skill does NOT add grammar explanations, historical
