@@ -15,18 +15,21 @@ Claude Skill для генерации поглавного иллюстраци
 ### В Claude.ai (Projects)
 Добавьте файл `SKILL.md` в Project Knowledge вашего проекта.
 
-### В Claude Code
-Скопируйте папку в директорию skills и подключите через конфигурацию.
+### Предварительные требования
+В Project Knowledge должен быть `master_style_framework.md` — неизменяемый каркас
+визуального стиля проекта. Если его нет — используйте [hp-master-style](../hp-master-style)
+для создания из шаблона.
 
 ## Структура
 
 ```
 hp-chapter-style/
-├── SKILL.md                — основная инструкция
-├── README.md
-└── references/
-    └── master_style_framework.md    — неизменяемый каркас стиля проекта
+├── SKILL.md    — основная инструкция
+└── README.md
 ```
+
+> **Примечание:** `master_style_framework.md` больше не хранится в references/ этого скилла.
+> Он управляется скиллом [hp-master-style](../hp-master-style) и живёт в Project Knowledge.
 
 ## Входные данные
 
@@ -40,5 +43,6 @@ hp-chapter-style/
 
 Этот skill — первый этап в пайплайне иллюстрирования:
 
+0. [hp-master-style](../hp-master-style) — создание каркаса стиля (setup)
 1. **hp-chapter-style** ← вы здесь
 2. [hp-generate-image](../hp-generate-image) — генерация промта для иллюстрации (использует выход этого skill'а)
