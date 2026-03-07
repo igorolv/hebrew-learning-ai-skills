@@ -25,14 +25,14 @@ hebrew-hp-translate/
 ├── SKILL.md                — основная инструкция
 ├── README.md
 └── references/
-    ├── example_input_pages_20_25.md    — пример входного файла
-    ├── example_output_pages_20_25.md   — образец результата (стр. 20–25)
-    └── example_output_pages_26_29.md   — образец результата (стр. 26–29)
+    ├── HP_ch1_20_25.md                — пример входного файла
+    ├── HP_ch1_20_25_translate.md     — образец результата (стр. 20–25)
+    └── HP_ch1_26_29_translate.md     — образец результата (стр. 26–29)
 ```
 
 ## Входные данные
 
-Markdown-файл, созданный skill'ом `hebrew-hp-extraction` (например, `HP_part_1_30_35.md`).
+Markdown-файл, созданный skill'ом `hebrew-hp-extraction` (например, `HP_ch1_30_35.md`).
 
 ## Часть проекта
 

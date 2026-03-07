@@ -15,12 +15,12 @@ Skill принимает:
 
 Примеры:
 
-references/HP_part_1_30_35_translate.md  
-references/HP_part_1_36_37_translate.md
+references/HP_ch1_30_35_translate.md  
+references/HP_ch1_36_37_translate.md
 
 Формат имени:
 
-HP_part_{BOOK}_{FROM}_{TO}_translate.md
+HP_ch{CHAPTER}_{FROM}_{TO}_translate.md
 
 Формат страниц внутри markdown:
 
@@ -85,17 +85,17 @@ illustration37.webp → 37
 
 Формула:
 
-HP_part_{BOOK}_{FROM}_{TO}_translate.md
+HP_ch{CHAPTER}_{FROM}_{TO}_translate.md
 
 ↓
 
-Гарри Поттер глава {BOOK} страницы {FROM}-{TO}.docx
+Гарри Поттер глава {CHAPTER} страницы {FROM}-{TO}.docx
 
 ---
 
 # Пример
 
-HP_part_1_36_37_translate.md
+HP_ch1_36_37_translate.md
 
 ↓
 
@@ -230,7 +230,7 @@ font size: 12
 
 Имя должно соответствовать:
 
-HP_part_{BOOK}_{FROM}_{TO}_translate.md
+HP_ch{CHAPTER}_{FROM}_{TO}_translate.md
 
 ---
 
@@ -238,7 +238,7 @@ HP_part_{BOOK}_{FROM}_{TO}_translate.md
 
 Если файл называется
 
-HP_part_1_36_37_translate.md
+HP_ch1_36_37_translate.md
 
 то markdown должен содержать
 
@@ -295,5 +295,5 @@ ERROR: invalid markdown table
 
 # References
 
-references/HP_part_1_30_35_translate.md  
-references/HP_part_1_36_37_translate.md
+references/HP_ch1_30_35_translate.md  
+references/HP_ch1_36_37_translate.md
