@@ -1,76 +1,77 @@
 ---
 name: hebrew-lesson-extract
 description: >
-  Extract structured content from Hebrew lesson PPTX files into organized Markdown.
-  Use this skill whenever the user uploads a Hebrew lesson presentation (.pptx) and asks to
-  extract, parse, or convert its content. Triggers include: uploading a שיעור (lesson) file,
-  asking to "извлечь урок", "разобрать презентацию", "сделать шпаргалку из урока",
-  "extract lesson", or any request involving a Hebrew lesson PPTX file.
-  This skill handles the EXTRACTION step only — it produces a structured "raw" markdown
-  with classified slides. A separate enrichment skill turns this into a full grammar cheat sheet.
-  Also use this skill when the user asks to process, read, or analyze a Hebrew lesson PPTX,
-  even if they don't explicitly say "extract".
+  Извлечение структурированного содержимого из PPTX-файлов уроков иврита в Markdown.
+  Использовать этот скилл, когда пользователь загружает презентацию урока иврита (.pptx)
+  и просит извлечь, разобрать или конвертировать её содержимое. Триггеры: загрузка файла
+  שיעור (урока), запросы «извлечь урок», «разобрать презентацию», «сделать шпаргалку из урока»,
+  «extract lesson», или любой запрос, связанный с PPTX-файлом урока иврита.
+  Скилл выполняет только ИЗВЛЕЧЕНИЕ — создаёт структурированный «сырой» markdown
+  с классифицированными слайдами. Отдельный скилл обогащения (`hebrew-lesson-enrich`)
+  превращает его в полноценную грамматическую шпаргалку.
+  Также использовать, когда пользователь просит обработать, прочитать или проанализировать
+  PPTX-файл урока иврита, даже если слово «извлечь» не произнесено явно.
 ---
 
-# Hebrew Lesson PPTX → Structured Markdown
+# Урок иврита: PPTX → Структурированный Markdown
 
-This skill extracts content from Hebrew lesson PPTX presentations and produces
-a structured Markdown file with classified slides.
+Скилл извлекает содержимое из PPTX-презентаций уроков иврита и создаёт
+структурированный Markdown-файл с классифицированными слайдами.
 
-## What it does
+## Что делает скилл
 
-1. Parses the PPTX file using `python-pptx`
-2. Classifies each slide into one of 20 categories (grammar, exercises, reading, etc.)
-3. Extracts text with **nikud preserved** and tables as markdown
-4. Extracts images and saves them as files
-5. For image-based tasks (e.g. spot-the-difference), Claude describes the image directly
+1. Парсит PPTX-файл с помощью `python-pptx`
+2. Классифицирует каждый слайд в одну из 20 категорий (грамматика, упражнения, чтение и т.д.)
+3. Извлекает текст с **сохранением огласовок (никуд)** и таблицы в формате markdown
+4. Извлекает изображения и сохраняет как отдельные файлы
+5. Для заданий по картинкам (например, «найди отличия») Claude описывает изображение напрямую
 
-## Workflow
+## Рабочий процесс
 
-### Step 1: Install dependency and run extraction
+### Шаг 1: Установка зависимости и запуск извлечения
 
 ```bash
 pip install python-pptx --break-system-packages -q
-python3 /path/to/scripts/extract_pptx.py "<uploaded_pptx_path>" /home/claude/lesson_extract
+python3 /path/to/scripts/extract_pptx.py "<путь_к_загруженному_pptx>" /home/claude/lesson_extract
 ```
 
-The script produces:
-- `урок_<N>_часть_<M>_extracted.md` — structured markdown with all slide content
-- `images/` — extracted slide images
+Скрипт создаёт:
+- `урок_<N>_часть_<M>_extracted.md` — структурированный markdown со всем содержимым слайдов
+- `images/` — извлечённые изображения из слайдов
 
-If lesson/part numbers cannot be determined, falls back to `extracted.md`.
+Если номер урока/части определить не удалось, файл будет назван `extracted.md`.
 
-### Output filename convention
+### Конвенция именования выходных файлов
 
-The output filename is derived from the **input PPTX filename**.
-The script parses the lesson number (`N`) and part number (`M`) from:
-1. Slide content (regex: `שיעור <N> חלק <M>`)
-2. Filename (fallback, e.g. `שיעור_13_חלק_3.pptx`)
+Имя выходного файла формируется из **имени входного PPTX-файла**.
+Скрипт определяет номер урока (`N`) и части (`M`) из:
+1. Содержимого слайдов (регулярное выражение: `שיעור <N> חלק <M>`)
+2. Имени файла (запасной вариант, например `שיעור_13_חלק_3.pptx`)
 
-| Input file | Output file |
+| Входной файл | Выходной файл |
 |---|---|
 | `שיעור 13 חלק 3.pptx` | `урок_13_часть_3_extracted.md` |
 | `שיעור_2_חלק_1.pptx` | `урок_2_часть_1_extracted.md` |
 | `unknown.pptx` | `extracted.md` |
 
-### Step 2: Review the extraction result
+### Шаг 2: Проверка результата извлечения
 
-Read `урок_<N>_часть_<M>_extracted.md` and check:
-- Are slide categories correct? (see reference: `references/output_format.md`)
-- Is all text content preserved?
-- Are tables formatted properly?
+Прочитать `урок_<N>_часть_<M>_extracted.md` и проверить:
+- Правильно ли классифицированы слайды? (см. справку: `references/output_format.md`)
+- Сохранён ли весь текстовый контент?
+- Правильно ли отформатированы таблицы?
 
-### Step 3: Process image tasks
+### Шаг 3: Обработка заданий по картинкам
 
-For each slide classified as `image_task`:
-1. View the extracted image file(s) using the `view` tool
-2. Describe what you see in the image
-3. If it's a "spot the difference" task (two similar images), list the differences
-4. Replace the `<!-- CLAUDE: ... -->` marker in the markdown with your description
+Для каждого слайда, классифицированного как `image_task`:
+1. Просмотреть извлечённое изображение с помощью инструмента `view`
+2. Описать, что видно на изображении
+3. Если это задание «найди отличия» (две похожие картинки) — перечислить различия
+4. Заменить маркер `<!-- CLAUDE: ... -->` в markdown своим описанием
 
-Write descriptions in **Russian** with Hebrew terms where appropriate.
+Описания писать **на русском**, при необходимости используя ивритские термины.
 
-Example output for an image task:
+Пример оформления задания по картинке:
 
 ```markdown
 ## Слайд 1 — 🖼️ Задание по картинке
@@ -87,85 +88,85 @@ Example output for an image task:
 ...
 ```
 
-### Step 4: Package and present the result
+### Шаг 4: Упаковка и выдача результата
 
-Package the extracted markdown and images into a single ZIP archive.
-The ZIP filename follows the same convention: `урок_<N>_часть_<M>_extracted.zip`.
+Упаковать извлечённый markdown и изображения в один ZIP-архив.
+Имя ZIP-файла следует той же конвенции: `урок_<N>_часть_<M>_extracted.zip`.
 
 ```bash
 cd /home/claude/lesson_extract
 zip -r "/mnt/user-data/outputs/урок_<N>_часть_<M>_extracted.zip" "урок_<N>_часть_<M>_extracted.md" images/
 ```
 
-The ZIP contains:
-- `урок_<N>_часть_<M>_extracted.md` — the markdown file (with `![Изображение](images/...)` links)
-- `images/` — all extracted slide images
+Содержимое ZIP:
+- `урок_<N>_часть_<M>_extracted.md` — markdown-файл (со ссылками `![Изображение](images/...)`)
+- `images/` — все извлечённые изображения
 
-This way the user gets a single downloadable file. When unpacked, relative image paths
-in the markdown resolve correctly.
+Таким образом пользователь получает один скачиваемый файл. При распаковке
+относительные пути к изображениям в markdown корректно разрешаются.
 
-Present the ZIP to the user using `present_files`.
+Показать ZIP пользователю с помощью `present_files`.
 
-## Slide categories
+## Категории слайдов
 
-The script classifies slides into these categories:
+Скрипт классифицирует слайды по следующим категориям:
 
-### Reference / Grammar
-| Category | Emoji | What it detects |
+### Справочные / грамматические
+| Категория | Эмодзи | Что распознаёт |
 |---|---|---|
-| `grammar` | 📖 | Russian explanatory text about grammar with Hebrew examples |
-| `vocabulary` | 📝 | Table of new words (מילים חדשות) |
-| `conjugation` | 📊 | Verb conjugation tables (with שורש, tense headers) |
-| `verb_summary` | 📊 | Summary table grouping verbs by גזרות |
-| `shem_peula` | 📊 | Verbal noun (שם פעולה) tables |
-| `numerals` | 🔢 | Numeral reference tables (שם מספר) from 10 to 90000 |
-| `prepositions` | 📖 | Preposition declension tables (מילת יחס + suffixes) |
+| `grammar` | 📖 | Объяснительный текст на русском о грамматике с примерами на иврите |
+| `vocabulary` | 📝 | Таблица новых слов (מילים חדשות) |
+| `conjugation` | 📊 | Таблицы спряжения глаголов (с שורש, заголовками времён) |
+| `verb_summary` | 📊 | Сводная таблица глаголов по גזרות |
+| `shem_peula` | 📊 | Таблицы отглагольных существительных (שם פעולה) |
+| `numerals` | 🔢 | Справочные таблицы числительных (שם מספר) от 10 до 90000 |
+| `prepositions` | 📖 | Таблицы склонения предлогов (מילת יחס + суффиксы) |
 
-### Exercises
-| Category | Emoji | What it detects |
+### Упражнения
+| Категория | Эмодзи | Что распознаёт |
 |---|---|---|
-| `exercise_fill` | ✏️ | Fill-in-the-blank exercises (blanks in text) |
-| `exercise_translate` | ✏️ | Translation exercises (Russian sentences to translate) |
-| `exercise_table` | ✏️ | Table-based exercises (fill empty table cells) |
-| `exercise_choose` | ✏️ | Choose the correct word from options in parentheses |
-| `exercise_oged` | ✏️ | אוגד exercises (copula, specifically) |
-| `exercise_morphology` | ✏️ | Determine root/binyan/gzara from a verb form |
-| `exercise_transform` | ✏️ | Rewrite sentences in a different tense (no blanks) |
-| `exercise_writing` | ✏️ | Write a composition / essay (חיבור) |
-| `exercise_questions` | ✏️ | Answer questions about a reading text |
+| `exercise_fill` | ✏️ | Упражнения на подстановку (пропуски в тексте) |
+| `exercise_translate` | ✏️ | Упражнения на перевод (предложения на русском для перевода) |
+| `exercise_table` | ✏️ | Табличные упражнения (заполнить пустые ячейки) |
+| `exercise_choose` | ✏️ | Выбрать правильное слово из вариантов в скобках |
+| `exercise_oged` | ✏️ | Упражнения на אוגד (связка/копула) |
+| `exercise_morphology` | ✏️ | Определить שורש, בניין, גזרה по форме глагола |
+| `exercise_transform` | ✏️ | Переписать предложения в другом времени (без пропусков) |
+| `exercise_writing` | ✏️ | Написать сочинение (חיבור) |
+| `exercise_questions` | ✏️ | Ответить на вопросы по прочитанному тексту |
 
-### Texts / Other
-| Category | Emoji | What it detects |
+### Тексты и прочее
+| Категория | Эмодзи | Что распознаёт |
 |---|---|---|
-| `reading` | 📖 | Hebrew reading texts, dialogs, stories |
-| `image_task` | 🖼️ | Slides with primarily images (spot-the-difference, etc.) |
-| `joke` | 😄 | Jokes and humorous texts (גולם, חושם, חלם) |
-| `other` | 📄 | Unclassified slides |
+| `reading` | 📖 | Тексты для чтения на иврите, диалоги, рассказы |
+| `image_task` | 🖼️ | Слайды с изображениями (найди отличия и т.п.) |
+| `joke` | 😄 | Анекдоты и юмористические тексты (גולם, חושם, חלם) |
+| `other` | 📄 | Неклассифицированные слайды |
 
-## Classification logic (summary)
+## Логика классификации (сводка)
 
-The classifier works in phases, from most specific to most general:
+Классификатор работает поэтапно, от наиболее специфичного к наиболее общему:
 
-1. **Image-only** — very little text + image + no table → `image_task`
-2. **Instruction keywords** — early detection of exercise types by Hebrew instructions
-   (תתרגמו, תשלימו, תכתבו חיבור, תעשו לפי הדוגמה, תבחרו, etc.)
-3. **Table-based** — analyze table headers and empty cells to determine type
-4. **Blanks in text** — `_{2,}` pattern detects fill-in exercises
-5. **Translation detection** — numbered or unnumbered Russian sentences
-6. **Transform detection** — instruction keyword + no blanks = rewrite exercise
-7. **Grammar keywords** — Russian explanatory text with grammar terminology
-8. **Reading** — long predominantly-Hebrew text
-9. **Fallbacks** — by Russian/Hebrew character ratio
+1. **Только изображение** — минимум текста + изображение + нет таблицы → `image_task`
+2. **Ключевые слова инструкций** — раннее определение типа упражнения по ивритским инструкциям
+   (תתרגמו, תשלימו, תכתבו חיבור, תעשו לפי הדוגמה, תבחרו и т.д.)
+3. **На основе таблиц** — анализ заголовков таблиц и пустых ячеек
+4. **Пропуски в тексте** — паттерн `_{2,}` обнаруживает упражнения на подстановку
+5. **Определение перевода** — нумерованные или ненумерованные предложения на русском
+6. **Определение трансформации** — ключевое слово инструкции + нет пропусков = упражнение на переписывание
+7. **Грамматические ключевые слова** — объяснительный текст на русском с грамматической терминологией
+8. **Чтение** — длинный текст преимущественно на иврите
+9. **Запасные варианты** — по соотношению русских и ивритских символов
 
-## Important notes
+## Важные замечания
 
-- **Nikud preservation**: The PPTX format preserves nikud much better than PDF.
-  The script extracts text as-is, keeping all vowel points intact.
-- **RTL text**: Hebrew text may appear in different directions depending on the
-  PPTX creation tool. The script extracts raw text without reordering.
-- **Underscore detection**: The script detects blanks as short as `__` (2+ underscores),
-  not just long `______` sequences. This catches all common blank formats.
-- **Classification is heuristic**: The script uses keyword and pattern matching.
-  Some slides may be misclassified. Review and correct if needed.
-- **No enrichment**: This skill does NOT add grammar explanations, historical
-  commentary, or additional examples. That's done by the enrichment skill.
+- **Сохранение огласовок**: формат PPTX сохраняет огласовки гораздо лучше, чем PDF.
+  Скрипт извлекает текст как есть, сохраняя все огласовки.
+- **Текст справа налево**: ивритский текст может иметь разное направление в зависимости
+  от инструмента, которым создан PPTX. Скрипт извлекает сырой текст без перестановки.
+- **Определение пропусков**: скрипт распознаёт пропуски от `__` (2+ подчёркивания),
+  а не только длинные `______` последовательности.
+- **Классификация эвристическая**: скрипт использует ключевые слова и сопоставление паттернов.
+  Некоторые слайды могут быть классифицированы неверно. При необходимости проверять и поправлять.
+- **Без обогащения**: этот скилл НЕ добавляет грамматические объяснения, исторические
+  комментарии или дополнительные примеры. Это делает скилл `hebrew-lesson-enrich`.
