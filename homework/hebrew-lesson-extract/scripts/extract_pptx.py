@@ -12,7 +12,6 @@ Outputs:
 
 import sys
 import os
-import json
 import re
 import base64
 from pathlib import Path
@@ -689,26 +688,19 @@ def main():
     for slide in slides_data:
         md_lines.append(format_slide_md(slide))
 
+    # Build output filename based on lesson/part numbers
+    if lesson_num is not None and part_num is not None:
+        base_name = f"урок_{lesson_num}_часть_{part_num}_extracted"
+    else:
+        base_name = "extracted"
+
     # Write output
-    md_path = os.path.join(output_dir, "extracted.md")
+    md_path = os.path.join(output_dir, f"{base_name}.md")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(md_lines))
 
-    # Write structured JSON for programmatic access
-    json_path = os.path.join(output_dir, "extracted.json")
-    json_data = []
-    for slide in slides_data:
-        entry = dict(slide)
-        entry["image_filenames"] = [os.path.basename(p) for p in slide.get("image_paths", [])]
-        del entry["image_paths"]
-        json_data.append(entry)
-
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(json_data, f, ensure_ascii=False, indent=2)
-
     print(f"\nDone!")
     print(f"  Markdown: {md_path}")
-    print(f"  JSON:     {json_path}")
     if any(s["has_image"] for s in slides_data):
         print(f"  Images:   {os.path.join(output_dir, 'images/')}")
 

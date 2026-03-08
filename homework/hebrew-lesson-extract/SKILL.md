@@ -35,13 +35,27 @@ python3 /path/to/scripts/extract_pptx.py "<uploaded_pptx_path>" /home/claude/les
 ```
 
 The script produces:
-- `extracted.md` — structured markdown with all slide content
-- `extracted.json` — same data as JSON (for programmatic use)
+- `урок_<N>_часть_<M>_extracted.md` — structured markdown with all slide content
 - `images/` — extracted slide images
+
+If lesson/part numbers cannot be determined, falls back to `extracted.md`.
+
+### Output filename convention
+
+The output filename is derived from the **input PPTX filename**.
+The script parses the lesson number (`N`) and part number (`M`) from:
+1. Slide content (regex: `שיעור <N> חלק <M>`)
+2. Filename (fallback, e.g. `שיעור_13_חלק_3.pptx`)
+
+| Input file | Output file |
+|---|---|
+| `שיעור 13 חלק 3.pptx` | `урок_13_часть_3_extracted.md` |
+| `שיעור_2_חלק_1.pptx` | `урок_2_часть_1_extracted.md` |
+| `unknown.pptx` | `extracted.md` |
 
 ### Step 2: Review the extraction result
 
-Read `extracted.md` and check:
+Read `урок_<N>_часть_<M>_extracted.md` and check:
 - Are slide categories correct? (see reference: `references/output_format.md`)
 - Is all text content preserved?
 - Are tables formatted properly?
@@ -73,15 +87,24 @@ Example output for an image task:
 ...
 ```
 
-### Step 4: Save and present the result
+### Step 4: Package and present the result
 
-Copy the final `extracted.md` (with image descriptions filled in) to
-`/mnt/user-data/outputs/` and present it to the user.
+Package the extracted markdown and images into a single ZIP archive.
+The ZIP filename follows the same convention: `урок_<N>_часть_<M>_extracted.zip`.
 
-Also copy images if they exist:
 ```bash
-cp -r /home/claude/lesson_extract/images/ /mnt/user-data/outputs/images/
+cd /home/claude/lesson_extract
+zip -r "/mnt/user-data/outputs/урок_<N>_часть_<M>_extracted.zip" "урок_<N>_часть_<M>_extracted.md" images/
 ```
+
+The ZIP contains:
+- `урок_<N>_часть_<M>_extracted.md` — the markdown file (with `![Изображение](images/...)` links)
+- `images/` — all extracted slide images
+
+This way the user gets a single downloadable file. When unpacked, relative image paths
+in the markdown resolve correctly.
+
+Present the ZIP to the user using `present_files`.
 
 ## Slide categories
 
