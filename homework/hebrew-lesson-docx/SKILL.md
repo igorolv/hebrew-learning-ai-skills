@@ -1,5 +1,5 @@
 ---
-name: hebrew-cheatsheet-docx
+name: hebrew-lesson-docx
 description: >
   Преобразование markdown-шпаргалок (грамматических справочников) по ивриту в форматированный DOCX.
   Используй этот skill, когда пользователь просит сгенерировать Word-документ из шпаргалки,
@@ -10,7 +10,7 @@ description: >
   НЕ использовать для домашних заданий — для них есть hebrew-generate-docx.
 ---
 
-# HEBREW_CHEATSHEET_TO_WORD
+# HEBREW_LESSON_TO_WORD
 
 Skill преобразует markdown-файлы с грамматическими шпаргалками по ивриту в DOCX.
 

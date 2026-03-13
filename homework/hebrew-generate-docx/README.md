@@ -39,7 +39,9 @@ Markdown-файл — результат работы скила `hebrew-homewor
 
 Этот skill — этап конвертации в пайплайне подготовки домашних заданий:
 
-1. [hebrew-lesson-extract](../hebrew-lesson-extract) — извлечение структуры из PDF-презентации
+1. [hebrew-lesson-extract](../hebrew-lesson-extract) — извлечение структуры из PPTX
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — обогащение грамматической шпаргалки
 3. [hebrew-homework](../hebrew-homework) — выполнение домашних заданий → markdown
 4. **hebrew-generate-docx** ← вы здесь (принимает результат шага 3)
+
+Параллельная ветка: [hebrew-lesson-docx](../hebrew-lesson-docx) — шпаргалка в DOCX (от шага 2).

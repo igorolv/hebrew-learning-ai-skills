@@ -52,3 +52,5 @@ Markdown-файл с выполненным домашним заданием.
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — создание грамматической шпаргалки
 3. **hebrew-homework** ← вы здесь
 4. [hebrew-generate-docx](../hebrew-generate-docx) — конвертация результата в DOCX
+
+Параллельная ветка: [hebrew-lesson-docx](../hebrew-lesson-docx) — шпаргалка в DOCX (от шага 2).
