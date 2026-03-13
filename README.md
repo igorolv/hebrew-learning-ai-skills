@@ -18,8 +18,8 @@ hebrew-learning-ai-skills/
 │   ├── README.md
 │   ├── hebrew-lesson-extract/
 │   ├── hebrew-lesson-enrich/
-│   ├── hebrew-homework/
-│   ├── hebrew-generate-docx/
+│   ├── hebrew-homework-solve/
+│   ├── hebrew-homework-docx/
 │   └── hebrew-lesson-docx/
 └── literary-club/
     └── harry-potter/
@@ -43,8 +43,8 @@ hebrew-learning-ai-skills/
 
 - `hebrew-lesson-extract` — извлечение содержимого PPTX-урока в markdown
 - `hebrew-lesson-enrich` — создание грамматической шпаргалки по extracted-файлу
-- `hebrew-homework` — выполнение упражнений по выбранным слайдам
-- `hebrew-generate-docx` — конвертация выполненного задания в DOCX
+- `hebrew-homework-solve` — выполнение упражнений по выбранным слайдам
+- `hebrew-homework-docx` — конвертация выполненного задания в DOCX
 - `hebrew-lesson-docx` — конвертация шпаргалки в DOCX
 
 ### Логика работы
@@ -53,7 +53,7 @@ hebrew-learning-ai-skills/
 PPTX урока
    → hebrew-lesson-extract
    → hebrew-lesson-enrich
-   ├→ hebrew-homework → hebrew-generate-docx   (ДЗ)
+   ├→ hebrew-homework-solve → hebrew-homework-docx   (ДЗ)
    └→ hebrew-lesson-docx                       (шпаргалка)
 ```
 
