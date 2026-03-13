@@ -40,11 +40,11 @@ Markdown-файл — результат работы скила `hebrew-lesson-
 
 `Шпаргалка_по_{N}_уроку_{M}_часть.docx`
 
-## Отличия от hebrew-generate-docx
+## Отличия от hebrew-homework-docx
 
 | | Домашнее задание | Шпаргалка |
 |---|---|---|
-| Скилл | hebrew-generate-docx | hebrew-lesson-docx |
+| Скилл | hebrew-homework-docx | hebrew-lesson-docx |
 | Структура | Плоская (слайды) | Иерархическая (разделы) |
 | Blockquotes | Нет | Есть |
 | Списки | Нумерованные упражнения | Маркированные |
@@ -60,7 +60,7 @@ Markdown-файл — результат работы скила `hebrew-lesson-
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — создание грамматической шпаргалки
 3. **hebrew-lesson-docx** ← вы здесь (принимает результат шага 2)
 
-Основная ветка пайплайна (домашние задания) продолжается через [hebrew-homework](../hebrew-homework) → [hebrew-generate-docx](../hebrew-generate-docx).
+Основная ветка пайплайна (домашние задания) продолжается через [hebrew-homework-solve](../hebrew-homework-solve) → [hebrew-homework-docx](../hebrew-homework-docx).
 
 ## Зависимости
 

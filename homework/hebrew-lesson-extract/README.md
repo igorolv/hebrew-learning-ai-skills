@@ -47,5 +47,5 @@ ZIP-архив со структурированным результатом:
 
 1. **hebrew-lesson-extract** ← вы здесь
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — создание шпаргалки
-3. [hebrew-homework](../hebrew-homework) — выполнение домашних заданий
-4. [hebrew-generate-docx](../hebrew-generate-docx) — сборка DOCX
+3. [hebrew-homework-solve](../hebrew-homework-solve) — выполнение домашних заданий
+4. [hebrew-homework-docx](../hebrew-homework-docx) — сборка DOCX

@@ -1,10 +1,10 @@
-# hebrew-generate-docx
+# hebrew-homework-docx
 
 Claude Skill для преобразования markdown-файлов с выполненными домашними заданиями по ивриту в DOCX.
 
 ## Что делает
 
-- Принимает markdown-файл — результат работы скила `hebrew-homework`
+- Принимает markdown-файл — результат работы скила `hebrew-homework-solve`
 - Генерирует форматированный DOCX с правильной типографикой для иврита (David 18pt, RTL) и русского (Arial 12pt)
 - Обрабатывает все типы упражнений: вставка глагола, перевод, выбор слова, классификация, текст для чтения
 - Корректно обрабатывает смешанные иврит/русский строки
@@ -21,7 +21,7 @@ Claude Skill для преобразования markdown-файлов с вып
 ## Структура
 
 ```
-hebrew-generate-docx/
+hebrew-homework-docx/
 ├── SKILL.md                                      — основная инструкция
 ├── README.md
 └── references/
@@ -31,7 +31,7 @@ hebrew-generate-docx/
 
 ## Входные данные
 
-Markdown-файл — результат работы скила `hebrew-homework`.
+Markdown-файл — результат работы скила `hebrew-homework-solve`.
 
 Формат имени: `ДЗ_урок_N_часть_M_слайды_X_Y.md` или `ДЗ_урок_N_часть_M.md`.
 
@@ -41,7 +41,7 @@ Markdown-файл — результат работы скила `hebrew-homewor
 
 1. [hebrew-lesson-extract](../hebrew-lesson-extract) — извлечение структуры из PPTX
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — обогащение грамматической шпаргалки
-3. [hebrew-homework](../hebrew-homework) — выполнение домашних заданий → markdown
-4. **hebrew-generate-docx** ← вы здесь (принимает результат шага 3)
+3. [hebrew-homework-solve](../hebrew-homework-solve) — выполнение домашних заданий → markdown
+4. **hebrew-homework-docx** ← вы здесь (принимает результат шага 3)
 
 Параллельная ветка: [hebrew-lesson-docx](../hebrew-lesson-docx) — шпаргалка в DOCX (от шага 2).

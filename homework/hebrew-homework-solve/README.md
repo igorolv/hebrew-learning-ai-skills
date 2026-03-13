@@ -1,4 +1,4 @@
-# hebrew-homework
+# hebrew-homework-solve
 
 Claude Skill для выполнения домашних заданий по ивриту на основе разобранного урока и обогащённой грамматической шпаргалки.
 
@@ -21,7 +21,7 @@ Claude Skill для выполнения домашних заданий по и
 ## Структура
 
 ```text
-hebrew-homework/
+hebrew-homework-solve/
 ├── SKILL.md                       — основная инструкция
 ├── README.md
 └── references/
@@ -50,7 +50,7 @@ Markdown-файл с выполненным домашним заданием.
 
 1. [hebrew-lesson-extract](../hebrew-lesson-extract) — извлечение структуры из PPTX
 2. [hebrew-lesson-enrich](../hebrew-lesson-enrich) — создание грамматической шпаргалки
-3. **hebrew-homework** ← вы здесь
-4. [hebrew-generate-docx](../hebrew-generate-docx) — конвертация результата в DOCX
+3. **hebrew-homework-solve** ← вы здесь
+4. [hebrew-homework-docx](../hebrew-homework-docx) — конвертация результата в DOCX
 
 Параллельная ветка: [hebrew-lesson-docx](../hebrew-lesson-docx) — шпаргалка в DOCX (от шага 2).

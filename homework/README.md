@@ -10,8 +10,8 @@
 
 1. **hebrew-lesson-extract** — извлекает содержимое PPTX-урока в структурированный markdown
 2. **hebrew-lesson-enrich** — превращает extracted-файл в подробную грамматическую шпаргалку
-3. **hebrew-homework** — выполняет упражнения по выбранным слайдам
-4. **hebrew-generate-docx** — собирает домашнее задание в Word-документ
+3. **hebrew-homework-solve** — выполняет упражнения по выбранным слайдам
+4. **hebrew-homework-docx** — собирает домашнее задание в Word-документ
 5. **hebrew-lesson-docx** — собирает шпаргалку в Word-документ
 
 ---
@@ -38,13 +38,13 @@ PPTX урока
             │                                  │
             ▼                                  ▼
 ┌───────────────────────┐      ┌───────────────────────┐
-│   hebrew-homework     │      │  hebrew-lesson-docx   │
+│   hebrew-homework-solve     │      │  hebrew-lesson-docx   │
 └───────────┬───────────┘      └───────────┬───────────┘
             │                              │
             │ ДЗ_урок_N_часть_M*.md        ▼
             ▼                        Шпаргалка.docx
 ┌───────────────────────┐
-│ hebrew-generate-docx  │
+│ hebrew-homework-docx  │
 └───────────┬───────────┘
             │
             ▼
@@ -79,7 +79,7 @@ PPTX урока
 
 ---
 
-### Шаг 3 · hebrew-homework
+### Шаг 3 · hebrew-homework-solve
 
 **Что делает:** выполняет домашнее задание по указанным слайдам урока.
 
@@ -91,13 +91,13 @@ PPTX урока
 
 ---
 
-### Шаг 4 · hebrew-generate-docx
+### Шаг 4 · hebrew-homework-docx
 
 **Что делает:** конвертирует выполненное домашнее задание из markdown в DOCX.
 
 | | |
 |---|---|
-| **Вход** | markdown-файл от `hebrew-homework` |
+| **Вход** | markdown-файл от `hebrew-homework-solve` |
 | **Выход** | DOCX-файл с типографикой для иврита и русского |
 | **Назначение** | Подготовить задание для печати, отправки или архива |
 
@@ -142,11 +142,11 @@ homework/
 │   ├── SKILL.md
 │   ├── README.md
 │   └── references/
-├── hebrew-homework/                  — выполнение домашних заданий
+├── hebrew-homework-solve/                  — выполнение домашних заданий
 │   ├── SKILL.md
 │   ├── README.md
 │   └── references/
-├── hebrew-generate-docx/             — конвертация ДЗ в DOCX
+├── hebrew-homework-docx/             — конвертация ДЗ в DOCX
 │   ├── SKILL.md
 │   ├── README.md
 │   └── references/
