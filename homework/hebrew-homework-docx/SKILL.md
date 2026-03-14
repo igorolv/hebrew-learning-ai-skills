@@ -184,7 +184,7 @@ function isCyrillic(char) {
 
 Если текст на русском:
 - font: Arial
-- size: 12pt (24 half-points)
+- size: 10pt (20 half-points)
 - bold
 - alignment: left
 
@@ -203,7 +203,7 @@ function isCyrillic(char) {
 ### Русский
 
 - font: Arial
-- size: 12pt (24 half-points)
+- size: 10pt (20 half-points)
 - alignment: left
 - spacing after: 120
 
@@ -211,7 +211,7 @@ function isCyrillic(char) {
 
 Разбивать на runs:
 - Каждый ивритский фрагмент → run с David 18pt, RTL, complexScript
-- Каждый русский фрагмент → run с Arial 12pt
+- Каждый русский фрагмент → run с Arial 10pt
 
 Абзац выравнивается по доминирующему языку (обычно right для иврита).
 
@@ -223,11 +223,11 @@ function isCyrillic(char) {
 
 Парсинг:
 1. Извлечь номер и текст
-2. Номер — отдельный run (Arial 12pt)
+2. Номер — отдельный run (Arial 10pt)
 3. Текст — определить язык, применить соответствующий шрифт
 4. Если в тексте есть `(**слово**)` — вставленное слово, выделить жирным
 
-Перевод/объяснение на следующей строке (без пустой строки) — отдельный параграф, Arial 12pt.
+Перевод/объяснение на следующей строке (без пустой строки) — отдельный параграф, Arial 10pt.
 
 ---
 
@@ -256,7 +256,7 @@ function isCyrillic(char) {
 Строки, состоящие целиком из ивритского текста (не являющиеся частью нумерованного списка и не являющиеся заголовком).
 
 - font: David
-- size: 14pt (28 half-points)
+- size: 18pt (36 half-points)
 - bold
 - alignment: right
 - direction: RTL
@@ -307,28 +307,56 @@ Markdown-таблицы преобразуются в таблицы Word.
 
 Ячейки с ивритом:
 - font: David
-- size: 14pt (28 half-points)
+- size: 18pt (36 half-points)
 - alignment: right
 - direction: RTL
 - complex script markers обязательны
 
 Ячейки с русским:
 - font: Arial
-- size: 12pt (24 half-points)
+- size: 10pt (20 half-points)
 - alignment: left
 
 ### Практическое правило для Hebrew runs в таблицах
 
 Нельзя ограничиваться установкой только `w:rFonts`.
 
-Для иврита в таблицах одновременно должны быть выставлены:
+Для иврита в таблицах нужны настройки на ДВУХ уровнях:
+
+**Уровень параграфа (Paragraph)** — обязательно для каждого параграфа с ивритом внутри ячейки:
+- `alignment: AlignmentType.RIGHT`
+- `bidirectional: true`
+
+**Уровень run (TextRun)** — обязательно для каждого ивритского фрагмента:
 - обычный шрифт `David`
 - complex script font `David`
-- `w:rtl`
-- `w:cs`
-- `w:sz` и `w:szCs`
+- `rightToLeft: true`
+- `size: 36` и `sizeCs: 36` (18pt)
+- `boldCs: true` если нужен жирный
 
-Если в одной ячейке смешаны русский и иврит, форматирование назначается только соответствующим фрагментам текста, а не всей ячейке целиком.
+Пример ячейки с ивритом:
+
+```javascript
+new TableCell({
+  children: [
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      bidirectional: true,
+      children: [
+        new TextRun({
+          text: hebrewText,
+          font: { name: "David" },
+          size: 36,
+          sizeCs: 36,
+          rightToLeft: true,
+        })
+      ]
+    })
+  ]
+})
+```
+
+Если в одной ячейке смешаны русский и иврит, форматирование назначается только соответствующим фрагментам текста, а не всей ячейке целиком. Параграф выравнивается вправо (`alignment: RIGHT, bidirectional: true`), русские runs получают шрифт Arial 10pt без `rightToLeft`.
 
 ---
 
@@ -336,8 +364,8 @@ Markdown-таблицы преобразуются в таблицы Word.
 
 Строки, начинающиеся с «Выбрано:» — содержат смешанный текст.
 
-- Основной шрифт: Arial 12pt
-- Ивритские слова внутри: David 14pt, RTL run
+- Основной шрифт: Arial 10pt
+- Ивритские слова внутри: David 18pt, RTL run
 - Слово после «Выбрано:» — жирное
 
 ---
@@ -389,7 +417,7 @@ new Paragraph({
 styles: {
   default: {
     document: {
-      run: { font: "Arial", size: 24 } // 12pt по умолчанию
+      run: { font: "Arial", size: 20 } // 10pt по умолчанию
     }
   },
   paragraphStyles: [
