@@ -290,7 +290,21 @@ Panoramic composition — width is clearly greater than height.
 
 ---
 
+# Проверка выхода
+
+Перед выдачей промта проверить:
+
+- [ ] Промт начинается с «Wide horizontal book illustration in landscape format, aspect ratio 3:2.»
+- [ ] Промт на английском языке
+- [ ] Персонажи соответствуют эталонам из BOOK_{N}_CHAPTER_{M}_STYLE.md
+- [ ] Нет запрещённых слов (vertical, A4, portrait, full-page и т.д.)
+- [ ] Нет запрещённых стилей (photorealism, cinematic lighting, anime, glowing effects, sparkles)
+- [ ] Стиль: traditional ink and watercolor, muted palette, 1990s
+- [ ] Сцена определена по ID из chapter style
+
+---
+
 # Результат
 
-Скилл возвращает **один готовый промт на английском языке**,  
+Скилл возвращает **один готовый промт на английском языке**,
 который можно напрямую использовать для генерации изображения.
