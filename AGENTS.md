@@ -12,7 +12,7 @@
 
 Обработка уроков иврита и выполнение домашних заданий.
 
-Pipeline: PPTX → extract → enrich → solve → DOCX
+Граф скилов, порядок запуска, стыки между шагами — в [`homework/PIPELINE.md`](homework/PIPELINE.md).
 
 | Skill | Что делает |
 |---|---|
@@ -26,8 +26,7 @@ Pipeline: PPTX → extract → enrich → solve → DOCX
 
 Учебные материалы по ивритскому изданию «Гарри Поттера».
 
-Текстовая ветка: PDF → extraction → translate → generate-docx
-Иллюстрационная ветка: master-style → chapter-style → generate-image → generate-docx
+Граф скилов (текстовая + иллюстрационная ветки), порядок запуска, стыки — в [`literary-club/harry-potter/PIPELINE.md`](literary-club/harry-potter/PIPELINE.md).
 
 | Skill | Что делает |
 |---|---|
