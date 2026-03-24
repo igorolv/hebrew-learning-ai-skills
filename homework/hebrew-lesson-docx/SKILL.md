@@ -20,7 +20,8 @@ Skill преобразует markdown-файлы с грамматическим
 
 # Входные данные
 
-Skill принимает markdown-файл — результат работы скила `hebrew-lesson-enrich`.
+Skill принимает markdown-файл — выход скила `hebrew-lesson-enrich`.
+Если скил `hebrew-lesson-enrich` ещё не выполнялся — предложить пользователю сначала запустить его.
 
 Формат имени:
 
