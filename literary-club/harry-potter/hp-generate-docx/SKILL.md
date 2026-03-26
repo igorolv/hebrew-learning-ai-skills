@@ -384,7 +384,35 @@ ERROR: invalid markdown table
 
 ---
 
+# Скрипт
+
+Генерация реализована скриптом `scripts/build_hp_docx.py`.
+
+Зависимости:
+
+```bash
+pip install python-docx
+```
+
+Запуск:
+
+```bash
+python3 scripts/build_hp_docx.py <markdown> <images_zip> [-o output.docx] [--no-render]
+```
+
+Примеры:
+
+```bash
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip -o out.docx
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip --no-render
+```
+
+По умолчанию после генерации DOCX запускается рендер через LibreOffice. Флаг `--no-render` пропускает этот шаг.
+
+---
+
 # References
 
-references/HP_ch1_30_35_translate.md  
+references/HP_ch1_30_35_translate.md
 references/HP_ch1_36_37_translate.md
