@@ -286,7 +286,7 @@ function isCyrillic(char) {
 
 Markdown-таблицы преобразуются в таблицы Word.
 
-Заголовки таблиц сохраняются (в отличие от hp-generate-docx, где удаляются).
+Заголовки таблиц удаляются (строка заголовка и строка-разделитель не попадают в DOCX).
 
 ### Поведение таблиц
 
@@ -410,10 +410,10 @@ new Paragraph({
 
 A4 (по умолчанию):
 
-верхнее: 2.54 см (1440 twips)
-нижнее: 2.54 см (1440 twips)
-левое: 2.54 см (1440 twips)
-правое: 2.54 см (1440 twips)
+верхнее: 1.27 см (720 twips)
+нижнее: 1.27 см (720 twips)
+левое: 1.27 см (720 twips)
+правое: 1.27 см (720 twips)
 
 ---
 
@@ -608,16 +608,35 @@ function parseInlineFormatting(text) {
 
 ---
 
-# Зависимости
+# Скрипт
 
-- npm пакет `docx` (`npm install -g docx`)
-- Node.js для выполнения скрипта генерации
+Генерация реализована скриптом `scripts/build_homework_docx.py`.
 
-Обязательно прочитать также `/mnt/skills/public/docx/SKILL.md` для базовых правил работы с docx-js.
+Зависимости:
+
+```bash
+pip install python-docx
+```
+
+Запуск:
+
+```bash
+python scripts/build_homework_docx.py <markdown...> [-o output.docx]
+```
+
+Примеры:
+
+```bash
+python scripts/build_homework_docx.py ДЗ_урок_13_часть_3_слайды_25_26.md
+python scripts/build_homework_docx.py ДЗ_урок_13_часть_3_слайды_25_26.md -o out.docx
+python scripts/build_homework_docx.py file1.md file2.md
+```
+
+Флаг `-o` работает только с одним входным файлом. При нескольких файлах DOCX создаётся рядом с каждым `.md`.
 
 ---
 
 # References
 
-references/ДЗ_урок_13_часть_3_слайды_25_26.md
-references/ДЗ_урок_13_часть_3_слайды_27_28.md
+references/ДЗ_урок_13_часть_3_27-28.md
+references/ДЗ_урок_14_часть_1_9-13_25.md
