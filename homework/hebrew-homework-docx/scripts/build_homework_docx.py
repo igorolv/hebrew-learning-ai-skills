@@ -419,7 +419,7 @@ def _style_cell(cell, text: str, force_hebrew: bool = False) -> None:
     for p in cell.paragraphs:
         p.clear()
     p = cell.paragraphs[0]
-    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_before = Pt(6) if force_hebrew or contains_hebrew(text) else Pt(0)
     p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.line_spacing = 1.0
     if force_hebrew:
@@ -431,7 +431,11 @@ def _style_cell(cell, text: str, force_hebrew: bool = False) -> None:
     else:
         _set_bidi(p, True)
         _set_jc(p, "start")
-        _add_runs(p, parse_inline(text))
+        runs = parse_inline(text)
+        if runs:
+            _add_runs(p, runs)
+        else:
+            _set_run_font(p.add_run(""), font="Arial", size_pt=10, rtl=False)
 
 
 def add_table(doc: Document, rows: List[List[str]], exercise: bool) -> None:
@@ -471,7 +475,8 @@ def add_table(doc: Document, rows: List[List[str]], exercise: bool) -> None:
             if nw is not None:
                 tcPr.remove(nw)
             txt = rd[ci] if ci < len(rd) else ""
-            is_num_col = exercise and ncols == 2 and ci == 1
+            text_col = rd[0] if len(rd) > 0 else ""
+            is_num_col = exercise and ncols == 2 and ci == 1 and contains_hebrew(text_col)
             _style_cell(cell, txt, force_hebrew=is_num_col)
             # cell margins
             mar = tcPr.find(qn("w:tcMar"))
@@ -483,7 +488,7 @@ def add_table(doc: Document, rows: List[List[str]], exercise: bool) -> None:
                 if el is None:
                     el = OxmlElement(f"w:{side}")
                     mar.append(el)
-                el.set(qn("w:w"), "100")
+                el.set(qn("w:w"), "40")
                 el.set(qn("w:type"), "dxa")
 
 
