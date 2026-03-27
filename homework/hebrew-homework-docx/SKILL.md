@@ -638,5 +638,5 @@ python scripts/build_homework_docx.py file1.md file2.md
 
 # References
 
-references/ДЗ_урок_13_часть_3_27-28.md
 references/ДЗ_урок_14_часть_1_9-13_25.md
+references/ДЗ_урок_14_часть_1_27-29.md

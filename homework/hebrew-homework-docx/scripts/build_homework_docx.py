@@ -370,8 +370,8 @@ def add_heading3(doc: Document, text: str) -> None:
         _set_run_font(r, font="Arial", size_pt=10, rtl=False)
 
 
-def add_hebrew_paragraph(doc: Document, text: str) -> None:
-    """Standalone Hebrew text (instruction) — David 18pt bold RTL."""
+def add_hebrew_paragraph(doc: Document, text: str, *, bold: bool = True) -> None:
+    """Standalone Hebrew text — bold for instructions, regular for body text."""
     p = doc.add_paragraph()
     _set_bidi(p, True)
     _set_jc(p, "start")
@@ -380,14 +380,19 @@ def add_hebrew_paragraph(doc: Document, text: str) -> None:
     for r in runs:
         dr = p.add_run(r.text)
         _set_run_font(dr, font="David", size_pt=18, rtl=True)
-        dr.bold = True
-        _set_bold_cs(dr)
+        if bold or r.bold:
+            dr.bold = True
+            _set_bold_cs(dr)
 
 
-def add_text_paragraph(doc: Document, text: str) -> None:
+def add_text_paragraph(doc: Document, text: str, *, force_rtl: bool = False) -> None:
     """Regular / mixed paragraph."""
     p = doc.add_paragraph()
-    _align_paragraph(p, text)
+    if force_rtl:
+        _set_bidi(p, True)
+        _set_jc(p, "start")
+    else:
+        _align_paragraph(p, text)
     p.paragraph_format.space_after = Pt(6)
     _add_runs(p, parse_inline(text))
 
@@ -544,6 +549,8 @@ def build(md_path: Path, output: Optional[Path] = None) -> Path:
     _init_document(doc)
 
     h2_count = 0
+    in_reading_section = False  # True when inside "Текст для чтения"
+    reading_instruction_done = False  # first Hebrew paragraph in reading section = instruction
     i = 0
     n = len(classified)
 
@@ -558,6 +565,8 @@ def build(md_path: Path, output: Optional[Path] = None) -> Path:
         if kind == "heading2":
             h2_count += 1
             add_heading2(doc, content, first=(h2_count == 1))
+            in_reading_section = "Текст для чтения" in content
+            reading_instruction_done = False
             i += 1
             continue
 
@@ -587,7 +596,14 @@ def build(md_path: Path, output: Optional[Path] = None) -> Path:
             continue
 
         if kind == "hebrew_paragraph":
-            add_hebrew_paragraph(doc, content)
+            if in_reading_section and reading_instruction_done:
+                # Body text in reading section — not bold
+                add_hebrew_paragraph(doc, content, bold=False)
+            else:
+                # Instruction — bold
+                add_hebrew_paragraph(doc, content, bold=True)
+                if in_reading_section:
+                    reading_instruction_done = True
             i += 1
             continue
 
@@ -597,7 +613,7 @@ def build(md_path: Path, output: Optional[Path] = None) -> Path:
             continue
 
         # text_paragraph
-        add_text_paragraph(doc, content)
+        add_text_paragraph(doc, content, force_rtl=in_reading_section)
         i += 1
 
     out = output or md_path.with_suffix(".docx")
