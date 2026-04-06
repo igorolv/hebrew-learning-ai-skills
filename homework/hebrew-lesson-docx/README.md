@@ -26,8 +26,10 @@ Claude Skill для преобразования markdown-шпаргалок (г
 hebrew-lesson-docx/
 ├── SKILL.md                                        — основная инструкция
 ├── README.md
+├── scripts/
+│   └── build_lesson_docx.py                        — генерация DOCX из markdown
 └── references/
-    └── Шпаргалка_по_14_уроку_1_часть.md           — эталонный пример входного markdown
+    └── ...                                         — эталонные примеры входного markdown
 ```
 
 ## Входные данные
@@ -64,5 +66,17 @@ Markdown-файл — результат работы скила `hebrew-lesson-
 
 ## Зависимости
 
-- Node.js
-- npm пакет `docx`
+- Python 3
+- `python-docx`
+
+## Запуск
+
+```bash
+python scripts/build_lesson_docx.py path/to/Шпаргалка_по_14_уроку_2_часть.md
+```
+
+Для одного входного файла можно указать явный выход:
+
+```bash
+python scripts/build_lesson_docx.py path/to/input.md -o path/to/output.docx
+```

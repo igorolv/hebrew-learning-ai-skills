@@ -456,7 +456,7 @@ A4:
 
 ---
 
-# Технические требования к docx-js
+# Технические требования к python-docx
 
 ## BiDi и RTL
 
@@ -673,15 +673,41 @@ function parseInlineFormatting(text) {
 
 ---
 
+# Реализация
+
+Генерация реализована скриптом `scripts/build_lesson_docx.py`.
+
+Зависимости:
+
+```bash
+pip install python-docx
+```
+
+Запуск:
+
+```bash
+python scripts/build_lesson_docx.py <markdown...> [-o output.docx]
+```
+
+Примеры:
+
+```bash
+python scripts/build_lesson_docx.py Шпаргалка_по_14_уроку_2_часть.md
+python scripts/build_lesson_docx.py Шпаргалка_по_14_уроку_2_часть.md -o out.docx
+python scripts/build_lesson_docx.py file1.md file2.md
+```
+
+Флаг `-o` работает только с одним входным файлом. При нескольких файлах DOCX создаётся рядом с каждым `.md`.
+
+---
+
 # Зависимости
 
-- npm пакет `docx` (`npm install -g docx`)
-- Node.js для выполнения скрипта генерации
-
-Обязательно прочитать также `/mnt/skills/public/docx/SKILL.md` для базовых правил работы с docx-js.
+- Python 3
+- пакет `python-docx`
 
 ---
 
 # References
 
-references/Шпаргалка_по_14_уроку_1_часть.md — эталонный пример входного markdown
+`references/` — папка с эталонными входными markdown-файлами, если они добавлены в skill.
