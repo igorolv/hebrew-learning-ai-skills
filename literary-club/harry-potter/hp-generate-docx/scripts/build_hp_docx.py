@@ -308,8 +308,6 @@ def build_table(document: Document, rows: List[List[str]]) -> None:
         row = table.rows[row_idx]
         row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
         set_row_no_break(row)
-        if row_idx == 0:
-            set_repeat_table_header(row)
         for col_idx in range(col_count):
             cell = row.cells[col_idx]
             set_cell_width(cell, col_width)
