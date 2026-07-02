@@ -27,15 +27,22 @@ HEBREW_RE = re.compile(r"[\u0590-\u05FF]")
 PAGE_RE = re.compile(r"^#\s+Страница\s+(\d+)\s*$")
 SUBHEADING_RE = re.compile(r"^##\s+")
 MD_TABLE_ROW_RE = re.compile(r"^\|.*\|\s*$")
+# Горизонтальная линия markdown (разделитель страниц ---). В документе не нужна:
+# разрывы между страницами делаются секциями Word, а не текстом.
+HR_RE = re.compile(r"^-{3,}$")
 DELIM_RE = re.compile(r"^\|\s*:?[-]+:?(?:\s*\|\s*:?[-]+:?)+\s*\|\s*$")
 MD_NAME_RE = re.compile(r"HP_ch(\d+)_(\d+)_(\d+)_translate\.md$", re.IGNORECASE)
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+# Фрагмент в круглых скобках (без вложенности). В первой колонке таблицы
+# «Различия» текст вне скобок — иврит, а перевод-глосса в скобках — русский.
+PAREN_RE = re.compile(r"(\([^()]*\))")
 
 
 @dataclass
 class Block:
     kind: str  # paragraph | table
     content: object
+    section: Optional[str] = None  # заголовок секции (## ...), из которой пришёл блок
 
 
 @dataclass
@@ -68,6 +75,7 @@ def parse_markdown(markdown_text: str) -> List[PageContent]:
     lines = markdown_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     pages: List[PageContent] = []
     current: Optional[PageContent] = None
+    current_section: Optional[str] = None
     paragraph_buffer: List[str] = []
     i = 0
 
@@ -87,6 +95,7 @@ def parse_markdown(markdown_text: str) -> List[PageContent]:
         if page_match:
             flush_paragraph()
             current = PageContent(number=int(page_match.group(1)))
+            current_section = None
             pages.append(current)
             i += 1
             continue
@@ -97,6 +106,13 @@ def parse_markdown(markdown_text: str) -> List[PageContent]:
 
         stripped = line.strip()
         if SUBHEADING_RE.match(stripped):
+            flush_paragraph()
+            current_section = SUBHEADING_RE.sub("", stripped).strip()
+            i += 1
+            continue
+
+        if HR_RE.match(stripped):
+            # Разделитель страниц --- отбрасываем (см. HR_RE).
             flush_paragraph()
             i += 1
             continue
@@ -112,7 +128,7 @@ def parse_markdown(markdown_text: str) -> List[PageContent]:
             if len(rows) >= 2 and DELIM_RE.match(table_lines[1]):
                 rows = rows[2:]  # drop markdown header + delimiter
             if rows:
-                current.blocks.append(Block("table", rows))
+                current.blocks.append(Block("table", rows, section=current_section))
             continue
 
         if stripped == "":
@@ -245,6 +261,33 @@ def style_paragraph_text(paragraph, text: str, force_hebrew: Optional[bool] = No
     paragraph.paragraph_format.line_spacing = 1.15
 
 
+def style_hebrew_paren_cell(paragraph, text: str) -> None:
+    """Ячейка «иврит + русская глосса в скобках» (1-я колонка таблицы «Различия»).
+
+    Базовое направление — RTL (иврит). Фрагменты в круглых скобках всегда
+    оформляются как русский (Times New Roman, 12, LTR) — это переводы-глоссы.
+    Текст вне скобок обычно на иврите (David, 18, RTL), но если во фрагменте
+    нет ивритских букв (например, сравнение с русским словом вне скобок), он
+    тоже оформляется как русский. Скобки входят в русский фрагмент.
+    """
+    paragraph.text = ""
+    set_paragraph_bidi(paragraph, True)
+    set_paragraph_jc(paragraph, "start")
+    for part in PAREN_RE.split(text):
+        if part == "":
+            continue
+        run = paragraph.add_run(part)
+        in_paren = part.startswith("(") and part.endswith(")")
+        if in_paren or not contains_hebrew(part):
+            set_run_font(run, font_name="Times New Roman", font_size_pt=12, rtl=False)
+        else:
+            set_run_font(run, font_name="David", font_size_pt=18, rtl=True)
+
+    paragraph.paragraph_format.space_after = Pt(6)
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.line_spacing = 1.15
+
+
 def style_page_heading(paragraph, text: str) -> None:
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     paragraph.paragraph_format.space_before = Pt(0)
@@ -261,10 +304,11 @@ def set_document_defaults(document: Document) -> None:
     section = document.sections[0]
     section.page_width = Cm(21)
     section.page_height = Cm(29.7)
-    section.top_margin = Cm(2.54)
-    section.bottom_margin = Cm(2.54)
-    section.left_margin = Cm(2.54)
-    section.right_margin = Cm(2.54)
+    # Стандартные «узкие» поля Word (пресет Narrow): 1.27 см со всех сторон.
+    section.top_margin = Cm(1.27)
+    section.bottom_margin = Cm(1.27)
+    section.left_margin = Cm(1.27)
+    section.right_margin = Cm(1.27)
 
 
 def get_text_width_emu(document: Document) -> int:
@@ -286,7 +330,23 @@ def add_picture_for_page(document: Document, image_path: Path) -> None:
     run.add_picture(str(image_path), width=width)
 
 
-def build_table(document: Document, rows: List[List[str]]) -> None:
+def build_table(
+    document: Document,
+    rows: List[List[str]],
+    col_modes: Optional[List[Optional[str]]] = None,
+) -> None:
+    """Строит таблицу Word из markdown-строк.
+
+    col_modes: если задан, оформление ячейки определяется не автоопределением по
+    тексту, а принудительно по индексу колонки:
+      "hebrew"        — иврит (David, 18, RTL);
+      "russian"       — русский (Times New Roman, 12, LTR);
+      "hebrew_paren"  — базово иврит (David/RTL), а фрагменты в круглых скобках —
+                        русский (Times New Roman/LTR);
+      None            — автоопределение по содержимому ячейки.
+    Нужно для таблиц со смешанным текстом (иврит + русский + английский в одной
+    ячейке), где автоопределение по всей ячейке ошибается.
+    """
     if not rows:
         return
     col_count = max(len(r) for r in rows)
@@ -326,7 +386,12 @@ def build_table(document: Document, rows: List[List[str]]) -> None:
             paragraph.paragraph_format.line_spacing = 1.0
             paragraph.paragraph_format.left_indent = Pt(0)
             paragraph.paragraph_format.right_indent = Pt(0)
-            style_paragraph_text(paragraph, text)
+            mode = col_modes[col_idx] if (col_modes is not None and col_idx < len(col_modes)) else None
+            if mode == "hebrew_paren":
+                style_hebrew_paren_cell(paragraph, text)
+            else:
+                force_hebrew = True if mode == "hebrew" else False if mode == "russian" else None
+                style_paragraph_text(paragraph, text, force_hebrew=force_hebrew)
 
             tc_mar = tc_pr.find(qn("w:tcMar"))
             if tc_mar is None:
@@ -401,7 +466,15 @@ def build_docx(md_path: Path, images_zip_path: Path, output_path: Optional[Path]
                     para = document.add_paragraph()
                     style_paragraph_text(para, chunk)
             elif block.kind == "table":
-                build_table(document, block.content)  # type: ignore[arg-type]
+                # В таблице «Различия…» ячейки смешивают иврит, русский и
+                # английский, поэтому автоопределение шрифта по тексту ячейки
+                # ошибается. Задаём шрифт принудительно по колонке:
+                # 1-я — иврит, но глоссы в круглых скобках — русским шрифтом;
+                # 2-я — целиком русский (Times New Roman).
+                col_modes: Optional[List[Optional[str]]] = None
+                if block.section and "Различия" in block.section:
+                    col_modes = ["hebrew_paren", "russian"]
+                build_table(document, block.content, col_modes=col_modes)  # type: ignore[arg-type]
 
     out_path = output_path or (md_path.parent / derive_output_name(md_path))
     document.save(str(out_path))
