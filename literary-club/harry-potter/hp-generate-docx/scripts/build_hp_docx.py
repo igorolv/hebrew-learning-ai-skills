@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from docx import Document
-from docx.enum.section import WD_SECTION_START
 from docx.enum.table import WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -24,6 +23,8 @@ from docx.shared import Cm, Pt
 
 
 HEBREW_RE = re.compile(r"[\u0590-\u05FF]")
+HEBREW_FRAGMENT_RE = re.compile(r"([\u0590-\u05FF]+)")
+LTR_LETTER_RE = re.compile(r"[A-Za-z\u0400-\u052F]")
 PAGE_RE = re.compile(r"^#\s+Страница\s+(\d+)\s*$")
 SUBHEADING_RE = re.compile(r"^##\s+")
 MD_TABLE_ROW_RE = re.compile(r"^\|.*\|\s*$")
@@ -243,8 +244,39 @@ def set_run_font(run, *, font_name: str, font_size_pt: int, rtl: bool) -> None:
     ensure_rtl_run(run, rtl)
 
 
+def style_ltr_paragraph_with_hebrew_fragments(paragraph, text: str) -> None:
+    """Оформляет русский/английский текст с отдельными ивритскими фрагментами.
+
+    В пояснениях к таблицам встречаются ивритские слова внутри русского текста.
+    Направление абзаца остаётся LTR, но каждый ивритский фрагмент получает
+    собственный run David/RTL — иначе Word применяет к нему русский шрифт.
+    """
+    paragraph.text = ""
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    set_paragraph_bidi(paragraph, False)
+
+    for part in HEBREW_FRAGMENT_RE.split(text):
+        if not part:
+            continue
+        run = paragraph.add_run(part)
+        if HEBREW_FRAGMENT_RE.fullmatch(part):
+            set_run_font(run, font_name="David", font_size_pt=18, rtl=True)
+        else:
+            set_run_font(run, font_name="Times New Roman", font_size_pt=12, rtl=False)
+
+    paragraph.paragraph_format.space_after = Pt(6)
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.line_spacing = 1.15
+
+
 def style_paragraph_text(paragraph, text: str, force_hebrew: Optional[bool] = None) -> None:
-    has_hebrew = contains_hebrew(text) if force_hebrew is None else force_hebrew
+    text_has_hebrew = contains_hebrew(text)
+    has_hebrew = text_has_hebrew if force_hebrew is None else force_hebrew
+    has_ltr_letters = bool(LTR_LETTER_RE.search(text))
+    if text_has_hebrew and ((force_hebrew is False) or (force_hebrew is None and has_ltr_letters)):
+        style_ltr_paragraph_with_hebrew_fragments(paragraph, text)
+        return
+
     paragraph.text = ""
     run = paragraph.add_run(text)
     if has_hebrew:
@@ -450,10 +482,23 @@ def build_docx(md_path: Path, images_zip_path: Path, output_path: Optional[Path]
 
     for idx, page in enumerate(pages):
         if idx > 0:
-            document.add_section(WD_SECTION_START.NEW_PAGE)
-            set_document_defaults(document)
+            # build_table() leaves a blank spacer paragraph after a table. If
+            # that spacer is the final item on a full page, Word moves it to a
+            # new page; combined with page_break_before below this created an
+            # entirely blank page before the next page heading.
+            trailing = next(
+                (element for element in reversed(document._body._body) if element.tag != qn("w:sectPr")),
+                None,
+            )
+            if trailing is not None and trailing.tag == qn("w:p") and not trailing.findall(f".//{qn('w:t')}"):
+                trailing.getparent().remove(trailing)
 
         heading = document.add_paragraph()
+        # Page-break-before avoids a blank page when a preceding table ends
+        # exactly at a page boundary; a section break in that situation can
+        # be pushed to the next page and then force the heading one page over.
+        if idx > 0:
+            heading.paragraph_format.page_break_before = True
         style_page_heading(heading, f"Страница {page.number}")
 
         image_path = image_map.get(page.number)
