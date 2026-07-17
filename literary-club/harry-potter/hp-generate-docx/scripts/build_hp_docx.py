@@ -280,6 +280,11 @@ def set_run_font(run, *, font_name: str, font_size_pt: int, rtl: bool) -> None:
     sz_cs.set(qn("w:val"), str(font_size_pt * 2))
 
     ensure_rtl_run(run, rtl)
+    cs_el = r_pr.find(qn("w:cs"))
+    if cs_el is None:
+        cs_el = OxmlElement("w:cs")
+        r_pr.append(cs_el)
+    cs_el.set(qn("w:val"), "1" if rtl else "0")
 
 
 def style_ltr_paragraph_with_hebrew_fragments(paragraph, text: str) -> None:
