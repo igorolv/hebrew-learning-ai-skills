@@ -4,7 +4,7 @@ Claude Skill для преобразования учебных markdown-фай�
 
 ## Что делает
 
-- Принимает markdown-файл с переведёнными страницами и ZIP-архив с иллюстрациями
+- Принимает markdown-файл с переведёнными страницами и список PNG-иллюстраций
 - Генерирует форматированный DOCX с правильной типографикой для иврита (David 18pt, RTL)
 - Вставляет иллюстрации на каждую страницу
 - Конвертирует markdown-таблицы в таблицы Word
@@ -34,7 +34,7 @@ hp-generate-docx/
 ## Входные данные
 
 1. Markdown-файл формата `HP_ch{CHAPTER}_{FROM}_{TO}_translate.md` (результат работы `hp-translate`)
-2. ZIP-архив с иллюстрациями — изображения, созданные на этапе `hp-generate-image` и собранные в архив (каждый файл содержит номер страницы в имени)
+2. Список PNG-иллюстраций, созданных на этапе `hp-generate-image`. Имена строго соответствуют `HP_ch{CHAPTER}_page_{PAGE}.png`
 
 ## Запуск
 
@@ -47,19 +47,19 @@ pip install python-docx
 Базовый запуск (с рендером через LibreOffice):
 
 ```bash
-python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png
 ```
 
 С явным выходным файлом:
 
 ```bash
-python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip -o out.docx
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png -o out.docx
 ```
 
 Без рендера через LibreOffice:
 
 ```bash
-python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zip --no-render
+python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png --no-render
 ```
 
 Имя выходного файла формируется автоматически: `HP_ch3_1_2_translate.md` → `Гарри Поттер глава 3 страницы 1-2.docx`.
@@ -71,5 +71,5 @@ python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md Картинка_1-2.zi
 1. [hp-extraction](../hp-extraction) — извлечение текста из PDF
 2. [hp-translate](../hp-translate) — добавление огласовок и переводов
 3. [hp-chapter-style](../hp-chapter-style) — визуальный стайлгайд главы
-4. [hp-generate-image](../hp-generate-image) — генерация промтов для иллюстраций
+4. [hp-generate-image](../hp-generate-image) — генерация готовых PNG-иллюстраций
 5. **hp-generate-docx** ← вы здесь (принимает результаты шагов 2 и 4)

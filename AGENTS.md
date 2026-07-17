@@ -35,7 +35,7 @@
 | `hp-translate` | Огласовки, подстрочный и литературный перевод |
 | `hp-master-style` | Master style framework для иллюстраций |
 | `hp-chapter-style` | Поглавный визуальный стайлгайд |
-| `hp-generate-image` | Промты для иллюстраций |
+| `hp-generate-image` | Генерация PNG-иллюстраций |
 | `hp-generate-docx` | Сборка финального DOCX |
 
 ## Структура skill'а

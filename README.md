@@ -78,7 +78,7 @@ PPTX урока
 #### Иллюстрационная ветка
 - `hp-master-style` — управление master style framework проекта
 - `hp-chapter-style` — поглавный визуальный стайлгайд
-- `hp-generate-image` — генерация промтов для иллюстраций
+- `hp-generate-image` — генерация готовых PNG-иллюстраций
 
 ### Логика работы
 
@@ -87,7 +87,9 @@ PPTX урока
 PDF/ZIP → hp-extraction → hp-translate → hp-generate-docx
 
 Иллюстрационная ветка:
-hp-master-style → hp-chapter-style → hp-generate-image → hp-generate-docx
+hp-master-style → hp-chapter-style ─┐
+                                   ├→ hp-generate-image → hp-generate-docx
+hp-translate ──────────────────────┘
 ```
 
 Итог: учебный DOCX по страницам книги с переводами, комментариями и иллюстрациями.

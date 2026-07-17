@@ -5,14 +5,11 @@ import argparse
 import math
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
-import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Sequence
 
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
@@ -33,7 +30,9 @@ MD_TABLE_ROW_RE = re.compile(r"^\|.*\|\s*$")
 HR_RE = re.compile(r"^-{3,}$")
 DELIM_RE = re.compile(r"^\|\s*:?[-]+:?(?:\s*\|\s*:?[-]+:?)+\s*\|\s*$")
 MD_NAME_RE = re.compile(r"HP_ch(\d+)_(\d+)_(\d+)_translate\.md$", re.IGNORECASE)
-IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+IMAGE_NAME_RE = re.compile(
+    r"^HP_ch(?P<chapter>[1-9]\d*)_page_(?P<page>[1-9]\d*)\.png$"
+)
 # Фрагмент в круглых скобках (без вложенности). В первой колонке таблицы
 # «Различия» текст вне скобок — иврит, а перевод-глосса в скобках — русский.
 PAREN_RE = re.compile(r"(\([^()]*\))")
@@ -60,11 +59,6 @@ class BuildResult:
 
 def contains_hebrew(text: str) -> bool:
     return bool(HEBREW_RE.search(text or ""))
-
-
-def extract_last_number(text: str) -> Optional[int]:
-    nums = re.findall(r"(\d+)", text)
-    return int(nums[-1]) if nums else None
 
 
 def normalize_table_row(line: str) -> List[str]:
@@ -144,25 +138,69 @@ def parse_markdown(markdown_text: str) -> List[PageContent]:
     return pages
 
 
-def load_images_from_zip(zip_path: Path) -> dict[int, Path]:
-    temp_dir = Path(tempfile.mkdtemp(prefix="hp_docx_images_"))
+def validate_inputs(
+    md_path: Path,
+    pages: Sequence[PageContent],
+    image_paths: Sequence[Path],
+) -> dict[int, Path]:
+    md_match = MD_NAME_RE.fullmatch(md_path.name)
+    if md_match is None:
+        raise ValueError(
+            "ERROR: markdown filename must match "
+            "HP_ch{CHAPTER}_{FROM}_{TO}_translate.md"
+        )
+
+    chapter, page_from, page_to = (int(value) for value in md_match.groups())
+    if page_from > page_to:
+        raise ValueError("ERROR: markdown page range is reversed")
+
+    expected_pages = list(range(page_from, page_to + 1))
+    markdown_pages = [page.number for page in pages]
+    if markdown_pages != expected_pages:
+        raise ValueError(
+            "ERROR: page count or order mismatch; "
+            f"expected {expected_pages}, got {markdown_pages}"
+        )
+
     mapping: dict[int, Path] = {}
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            name = Path(info.filename).name
-            suffix = Path(name).suffix.lower()
-            if suffix not in IMAGE_SUFFIXES:
-                continue
-            page_number = extract_last_number(name)
-            if page_number is None:
-                continue
-            target = temp_dir / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(info) as src, open(target, "wb") as dst:
-                shutil.copyfileobj(src, dst)
-            mapping[page_number] = target
+    for image_path in image_paths:
+        if not image_path.exists() or not image_path.is_file():
+            raise ValueError(f"ERROR: image file not found: {image_path}")
+
+        image_match = IMAGE_NAME_RE.fullmatch(image_path.name)
+        if image_match is None:
+            raise ValueError(
+                "ERROR: invalid image filename "
+                f"{image_path.name!r}; expected HP_ch{{CHAPTER}}_page_{{PAGE}}.png"
+            )
+
+        image_chapter = int(image_match.group("chapter"))
+        page_number = int(image_match.group("page"))
+        if image_chapter != chapter:
+            raise ValueError(
+                f"ERROR: image {image_path.name!r} belongs to chapter "
+                f"{image_chapter}, expected chapter {chapter}"
+            )
+        if page_number in mapping:
+            raise ValueError(f"ERROR: duplicate image for page {page_number}")
+        mapping[page_number] = image_path
+
+    expected_set = set(expected_pages)
+    actual_set = set(mapping)
+    missing = sorted(expected_set - actual_set)
+    extra = sorted(actual_set - expected_set)
+    if missing:
+        raise ValueError(
+            "ERROR: image for page "
+            + ", ".join(str(page) for page in missing)
+            + " not found"
+        )
+    if extra:
+        raise ValueError(
+            "ERROR: unexpected image for page "
+            + ", ".join(str(page) for page in extra)
+        )
+
     return mapping
 
 
@@ -473,9 +511,14 @@ def render_docx(docx_path: Path, out_dir: Path) -> None:
     )
 
 
-def build_docx(md_path: Path, images_zip_path: Path, output_path: Optional[Path], render: bool) -> BuildResult:
+def build_docx(
+    md_path: Path,
+    image_paths: Sequence[Path],
+    output_path: Optional[Path],
+    render: bool,
+) -> BuildResult:
     pages = parse_markdown(md_path.read_text(encoding="utf-8"))
-    image_map = load_images_from_zip(images_zip_path)
+    image_map = validate_inputs(md_path, pages, image_paths)
 
     document = Document()
     set_document_defaults(document)
@@ -501,9 +544,7 @@ def build_docx(md_path: Path, images_zip_path: Path, output_path: Optional[Path]
             heading.paragraph_format.page_break_before = True
         style_page_heading(heading, f"Страница {page.number}")
 
-        image_path = image_map.get(page.number)
-        if image_path and image_path.exists():
-            add_picture_for_page(document, image_path)
+        add_picture_for_page(document, image_map[page.number])
 
         for block in page.blocks:
             if block.kind == "paragraph":
@@ -535,7 +576,12 @@ def build_docx(md_path: Path, images_zip_path: Path, output_path: Optional[Path]
 def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Harry Potter Hebrew markdown into DOCX.")
     parser.add_argument("markdown", type=Path, help="Path to HP_ch*_translate.md")
-    parser.add_argument("images_zip", type=Path, help="Path to ZIP with illustrations")
+    parser.add_argument(
+        "images",
+        type=Path,
+        nargs="+",
+        help="PNG illustrations named HP_ch{CHAPTER}_page_{PAGE}.png",
+    )
     parser.add_argument("-o", "--output", type=Path, help="Output DOCX path")
     parser.add_argument("--no-render", action="store_true", help="Skip LibreOffice PDF render")
     return parser.parse_args(argv)
@@ -543,12 +589,16 @@ def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[Iterable[str]] = None) -> int:
     args = parse_args(argv)
-    result = build_docx(
-        md_path=args.markdown,
-        images_zip_path=args.images_zip,
-        output_path=args.output,
-        render=not args.no_render,
-    )
+    try:
+        result = build_docx(
+            md_path=args.markdown,
+            image_paths=args.images,
+            output_path=args.output,
+            render=not args.no_render,
+        )
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     print(f"DOCX: {result.output_docx}")
     if result.render_dir:
         print(f"RENDER_DIR: {result.render_dir}")

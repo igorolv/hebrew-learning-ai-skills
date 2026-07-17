@@ -13,42 +13,36 @@ Pipeline — упорядоченный граф скилов, где выход
 Pipeline состоит из двух веток — текстовой и иллюстрационной — которые сходятся на финальном шаге.
 
 ```
- ТЕКСТОВАЯ ВЕТКА                        ИЛЛЮСТРАЦИОННАЯ ВЕТКА
-
-                                        шаблон из references/
-                                                 |
-                                                 v
-                                        [hp-master-style]
-                                                 |
-                                                 | master_style_framework.md
-                                                 | (в Project Knowledge)
-                                                 |
- PDF-исходник (от пользователя)                  +------------------+
-          |                                      |                  |
-          v                                      |   Текст главы    |
-   [hp-extraction]                               |   (Росмэн)       |
-          |                                      |        |         |
-          | HP_ch{N}_{FROM}_{TO}.md              |        v         |
-          v                                      |  [hp-chapter-    |
-   [hp-translate] <-- [hp-source-texts]          |    style]        |
-          |                                      |        |         |
-          | HP_ch{N}_{FROM}_{TO}_translate.md    |        |         |
-          |                                      |        v         v
-          |                              BOOK_{N}_CHAPTER_{M}_STYLE.md
-          |                                      |
-          |                                      v
-          |                              [hp-generate-image]
-          |                                      |
-          |                                      | промты -> генерация
-          |                                      | -> ZIP с картинками
-          |                                      |
-          +------------------+-------------------+
-                             |
-                             v
-                    [hp-generate-docx]
-                             |
-                             v
-          Гарри Поттер глава {N} страницы {FROM}-{TO}.docx
+ PDF-исходник
+      |
+      v
+ [hp-extraction]
+      |
+      | HP_ch{N}_{FROM}_{TO}.md
+      v
+ [hp-translate] <-- [hp-source-texts]
+      |
+      | HP_ch{N}_{FROM}_{TO}_translate.md
+      +------------------------+------------------------------+
+                               |                              |
+                               v                              |
+                      [hp-generate-image]                     |
+                               ^                              |
+                               | BOOK_{N}_CHAPTER_{M}_STYLE.md|
+                               |                              |
+ [hp-master-style] ---> [hp-chapter-style]                   |
+         |                     |                              |
+         +---------------------+                              |
+       master_style_framework.md                              |
+                               |                              |
+                               | HP_ch{CHAPTER}_page_{PAGE}.png|
+                               +------------------------------+
+                                              |
+                                              v
+                                     [hp-generate-docx]
+                                              |
+                                              v
+                    Гарри Поттер глава {N} страницы {FROM}-{TO}.docx
 ```
 
 ## Ветки
@@ -59,12 +53,15 @@ Pipeline состоит из двух веток — текстовой и ил�
 extraction -> translate -> generate-docx
 ```
 
-Линейная цепочка. `hp-source-texts` — утилита, вызываемая автоматически из `hp-translate`.
+`hp-source-texts` — утилита, вызываемая автоматически из `hp-translate`.
+Translated markdown передаётся одновременно в `hp-generate-image` и `hp-generate-docx`.
 
 ### Иллюстрационная ветка
 
 ```
-master-style -> chapter-style -> generate-image -> generate-docx
+master-style -> chapter-style ─┐
+                              ├-> generate-image -> generate-docx
+translate --------------------┘
 ```
 
 `master-style` выполняется один раз на весь проект (setup). `chapter-style` — один раз на главу. `generate-image` — по одному разу на каждую страницу.
@@ -73,7 +70,7 @@ master-style -> chapter-style -> generate-image -> generate-docx
 
 `hp-generate-docx` принимает выходы обеих веток:
 - markdown из текстовой ветки
-- ZIP с иллюстрациями из иллюстрационной ветки
+- список PNG-иллюстраций из иллюстрационной ветки
 
 ---
 
@@ -101,6 +98,15 @@ master-style -> chapter-style -> generate-image -> generate-docx
 | **Артефакт** | `HP_ch{N}_{FROM}_{TO}_translate.md` |
 | **Содержимое** | Полный учебный markdown: иврит с огласовками, подстрочник, литературный перевод, сложные слова, различия переводов |
 
+### translate -> generate-image
+
+| | |
+|---|---|
+| **Артефакт** | `HP_ch{N}_{FROM}_{TO}_translate.md` |
+| **Дополнительный вход** | Целевой номер `PAGE` |
+| **Содержимое** | Блок `# Страница PAGE`; события берутся из секций «Иврит» и «Подстрочный перевод» |
+| **Правило** | Литературный перевод используется как контекст и не добавляет неподтверждённые визуальные детали |
+
 ### master-style -> chapter-style, generate-image
 
 | | |
@@ -120,9 +126,10 @@ master-style -> chapter-style -> generate-image -> generate-docx
 
 | | |
 |---|---|
-| **Артефакт** | ZIP-архив с иллюстрациями |
-| **Содержимое** | Изображения (PNG/JPG/WEBP), номер страницы в имени файла |
-| **Особенность** | Между generate-image и generate-docx есть ручной шаг: пользователь генерирует картинки по промтам в ChatGPT/DALL-E, собирает в ZIP |
+| **Артефакт** | Список отдельных PNG-иллюстраций |
+| **Имя каждого файла** | `HP_ch{CHAPTER}_page_{PAGE}.png` |
+| **Содержимое** | По одной готовой иллюстрации на каждую страницу markdown |
+| **Особенность** | `hp-generate-image` сразу вызывает генератор изображений; ZIP и ручная упаковка не используются |
 
 ---
 
@@ -137,18 +144,18 @@ master-style -> chapter-style -> generate-image -> generate-docx
 | Текст главы на русском (Росмэн) | chapter-style | да |
 | Английский оригинал (`HP_en_ch{N}.md`) | translate (через source-texts) | да, в Project Knowledge |
 | Русский Росмэн (`HP_rosmen_ch{N}.md`) | translate (через source-texts) | да, в Project Knowledge |
-| Фрагмент текста сцены | generate-image | да |
-| ZIP с готовыми иллюстрациями | generate-docx | да |
+| Целевой номер страницы `PAGE` | generate-image | да |
+| Список готовых PNG-иллюстраций | generate-docx | да |
 
 ### Между скилами (внутренние артефакты)
 
 | Артефакт | Откуда | Куда |
 |----------|--------|------|
 | `HP_ch{N}_{FROM}_{TO}.md` | extraction | translate |
-| `HP_ch{N}_{FROM}_{TO}_translate.md` | translate | generate-docx |
+| `HP_ch{N}_{FROM}_{TO}_translate.md` | translate | generate-image, generate-docx |
 | `master_style_framework.md` | master-style | chapter-style, generate-image |
 | `BOOK_{N}_CHAPTER_{M}_STYLE.md` | chapter-style | generate-image |
-| ZIP с иллюстрациями | generate-image (+ ручная генерация) | generate-docx |
+| `HP_ch{CHAPTER}_page_{PAGE}.png` | generate-image | generate-docx |
 
 ---
 
@@ -166,8 +173,7 @@ master-style -> chapter-style -> generate-image -> generate-docx
 ```
 0. master-style   — один раз на проект (setup)
 1. chapter-style  — один раз на главу
-2. generate-image — по одному промту на страницу
-   (затем пользователь генерирует картинки и собирает ZIP)
+2. generate-image — после translate и chapter-style, по одному готовому PNG на страницу
 ```
 
 ### Финальная сборка
@@ -176,7 +182,8 @@ master-style -> chapter-style -> generate-image -> generate-docx
 3. generate-docx  — после завершения обеих веток
 ```
 
-Текстовую и иллюстрационную ветки можно вести параллельно.
+`translate` и `chapter-style` можно готовить параллельно. `generate-image`
+запускается только после готовности обоих их выходов.
 
 ---
 
@@ -212,6 +219,7 @@ master-style -> chapter-style -> generate-image -> generate-docx
 | Переведённый файл | `HP_ch{N}_{FROM}_{TO}_translate.md` |
 | Master style | `master_style_framework.md` |
 | Chapter style | `BOOK_{N}_CHAPTER_{M}_STYLE.md` |
+| Иллюстрация страницы | `HP_ch{CHAPTER}_page_{PAGE}.png` |
 | Английский оригинал | `HP_en_ch{N}.md` |
 | Русский Росмэн | `HP_rosmen_ch{N}.md` |
 | Готовый DOCX | `Гарри Поттер глава {N} страницы {FROM}-{TO}.docx` |

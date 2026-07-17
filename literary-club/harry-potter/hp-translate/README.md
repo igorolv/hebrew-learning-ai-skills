@@ -9,6 +9,7 @@ Claude Skill для добавления селективных огласово
 - Добавляет литературный перевод по канону издательства Росмэн
 - Анализирует значимые различия между ивритским и русским переводами
 - Сохраняет «матери чтения» (ктив мале) при добавлении огласовок
+- Создаёт единый translated markdown для `hp-generate-image` и `hp-generate-docx`
 
 ## Как использовать
 
@@ -34,6 +35,14 @@ hp-translate/
 
 Markdown-файл, созданный skill'ом `hp-extraction` (например, `HP_ch1_30_35.md`).
 
+## Выходные данные
+
+`HP_ch{CHAPTER}_{FROM}_{TO}_translate.md` с последовательными блоками
+`# Страница N`. Файл передаётся:
+
+- в `hp-generate-image` вместе с целевым номером страницы
+- в `hp-generate-docx` вместе со списком готовых PNG
+
 ### Зависимости
 
 Для секций «Литературный перевод» и «Различия переводов» требуются исходные тексты в Project Knowledge:
@@ -49,4 +58,5 @@ Markdown-файл, созданный skill'ом `hp-extraction` (наприме
 1. [hp-extraction](../hp-extraction) — извлечение текста из PDF
 2. **hp-translate** ← вы здесь
    - зависимость: [hp-source-texts](../hp-source-texts) — поиск английского и русского текстов
-3. [hp-chapter-style](../hp-chapter-style) — визуальный стайлгайд главы
+3. [hp-generate-image](../hp-generate-image) — одна PNG-иллюстрация на целевую страницу
+4. [hp-generate-docx](../hp-generate-docx) — сборка translated markdown и PNG в DOCX

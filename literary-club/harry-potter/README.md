@@ -18,7 +18,7 @@ Pipeline состоит из двух веток — текстовой и ил�
 
 - **hp-master-style** — управление master style framework проекта
 - **hp-chapter-style** — поглавный визуальный стайлгайд
-- **hp-generate-image** — генерация промтов для иллюстраций
+- **hp-generate-image** — генерация готовых PNG-иллюстраций
 
 ### Финальная сборка
 
@@ -76,10 +76,14 @@ Pipeline состоит из двух веток — текстовой и ил�
 
 ### hp-generate-image
 
+- Входной translated markdown соответствует формату `HP_ch{N}_{FROM}_{TO}_translate.md`
+- Целевая страница входит в диапазон и присутствует ровно один раз
+- События иллюстрации подтверждаются ивритом и полным подстрочником
 - Присутствует обязательное начало промта (Wide horizontal book illustration...)
 - Персонажи соответствуют эталонам из chapter style
 - Нет запрещённых элементов (photorealism, glowing effects, anime и т.д.)
 - Стиль — traditional ink and watercolor, не digital painting
+- Файл называется `HP_ch{CHAPTER}_page_{PAGE}.png`
 - Готовая иллюстрация: приглушённая палитра, 1990s, нет магического свечения
 
 ### hp-generate-docx
@@ -123,7 +127,7 @@ harry-potter/
 │   ├── README.md
 │   └── references/
 │       └── master_style_framework.md
-├── hp-generate-image/                 -- промт для иллюстрации
+├── hp-generate-image/                 -- готовая PNG-иллюстрация
 │   ├── SKILL.md
 │   └── README.md
 └── hp-generate-docx/                  -- финальная сборка DOCX
