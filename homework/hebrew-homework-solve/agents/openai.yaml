@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Homework Solve"
+  short_description: "Решение упражнений и заданий по ивриту"
+  default_prompt: "Use $hebrew-homework-solve to solve the selected Hebrew lesson exercises."

@@ -1,80 +1,43 @@
 # Homework · Hebrew Learning Pipeline
 
-Набор Claude Skills для обработки уроков иврита и домашних заданий: от PPTX-презентации до готового DOCX с выполненными упражнениями.
+Набор скиллов для обработки уроков иврита: от PPTX до грамматической шпаргалки и полностью
+решённого домашнего задания в Markdown и DOCX.
 
----
+## Режимы
 
-## Что входит в pipeline
+### Полный автоматический цикл
 
-Папка `homework/` содержит пять связанных skill'ов:
+`hebrew-homework-pipeline` принимает новый PPTX, запускает все этапы, решает все найденные задания
+и складывает результаты в `урок_N_часть_M_result/`.
 
-1. **hebrew-lesson-extract** — извлекает содержимое PPTX-урока в структурированный markdown
-2. **hebrew-lesson-enrich** — превращает extracted-файл в подробную грамматическую шпаргалку
-3. **hebrew-homework-solve** — выполняет упражнения по выбранным слайдам
-4. **hebrew-homework-docx** — собирает домашнее задание в Word-документ
-5. **hebrew-lesson-docx** — собирает шпаргалку в Word-документ
+### Отдельные этапы
 
-Граф скилов, порядок запуска, стыки между шагами и конвенции именования файлов — в [PIPELINE.md](PIPELINE.md).
+1. `hebrew-lesson-extract` — PPTX → extracted Markdown + images.
+2. `hebrew-lesson-enrich` — extracted Markdown → грамматическая шпаргалка.
+3. `hebrew-homework-solve` — выбранные или все задания → решённый Markdown.
+4. `hebrew-homework-docx` — решённый Markdown → DOCX.
+5. `hebrew-lesson-docx` — шпаргалка Markdown → DOCX.
 
----
+Граф, стыки, validation gates и конвенции именования описаны в [PIPELINE.md](PIPELINE.md).
 
-## Что проверять на каждом шаге
+## Что проверяется
 
-### hebrew-lesson-extract
+- Extract: полнота слайдов, классификация, таблицы, изображения и никуд источника.
+- Enrich: грамматика, парадигмы, словарь, кумулятивные таблицы и никуд.
+- Solve: полнота пунктов, грамматические формы, переводы и учебный никуд.
+- DOCX: структурный контракт RTL/BiDi, шрифтов, таблиц и разрывов страниц.
+- Pipeline: комплектность общей выходной директории и всех финальных артефактов.
 
-- Правильно ли классифицированы слайды (grammar, exercise_*, reading и т.д.)
-- Сохранён ли весь текстовый контент
-- Правильно ли отформатированы таблицы
-- Есть ли все изображения в `images/`
-
-### hebrew-lesson-enrich
-
-- Грамматические объяснения корректны и развёрнуты
-- Таблицы спряжения заполнены с огласовками
-- Лексика разбита по категориям (существительные, глаголы, прилагательные и т.д.)
-- Кумулятивная таблица глаголов включает все части урока
-- Стиль соответствует эталону (урок 13)
-
-### hebrew-homework-solve
-
-- Глаголы вставлены в правильной форме (время, лицо, род, число)
-- Огласовки расставлены по правилам (новые слова — да, базовые — нет)
-- Переводы под каждым предложением
-- Формат таблицы: `| Текст | № |`
-
-### hebrew-homework-docx / hebrew-lesson-docx
-
-- Иврит отображается шрифтом David, RTL
-- Таблицы не разорваны между страницами
-- Разрывы страниц в правильных местах
-
----
-
-## Структура директории
+## Структура
 
 ```text
 homework/
-├── README.md                         <- этот файл
-├── PIPELINE.md                       <- формальное описание pipeline для AI
-├── hebrew-lesson-extract/            -- извлечение урока из PPTX
-│   ├── SKILL.md
-│   ├── README.md
-│   ├── references/
-│   └── scripts/
-├── hebrew-lesson-enrich/             -- обогащение урока и создание шпаргалки
-│   ├── SKILL.md
-│   ├── README.md
-│   └── references/
-├── hebrew-homework-solve/            -- выполнение домашних заданий
-│   ├── SKILL.md
-│   ├── README.md
-│   └── references/
-├── hebrew-homework-docx/             -- конвертация ДЗ в DOCX
-│   ├── SKILL.md
-│   ├── README.md
-│   └── references/
-└── hebrew-lesson-docx/               -- конвертация шпаргалки в DOCX
-    ├── SKILL.md
-    ├── README.md
-    └── references/
+├── README.md
+├── PIPELINE.md
+├── hebrew-homework-pipeline/
+├── hebrew-lesson-extract/
+├── hebrew-lesson-enrich/
+├── hebrew-homework-solve/
+├── hebrew-homework-docx/
+└── hebrew-lesson-docx/
 ```

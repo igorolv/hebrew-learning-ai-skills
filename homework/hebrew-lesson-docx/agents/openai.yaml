@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Lesson DOCX"
+  short_description: "Сборка грамматической шпаргалки в DOCX"
+  default_prompt: "Use $hebrew-lesson-docx to convert this Hebrew grammar cheat sheet Markdown into DOCX."

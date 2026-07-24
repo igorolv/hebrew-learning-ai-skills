@@ -1,6 +1,6 @@
 # hebrew-lesson-enrich
 
-Claude Skill для превращения сырого extracted-markdown урока иврита в подробную грамматическую шпаргалку.
+Скилл для превращения сырого extracted-markdown урока иврита в подробную грамматическую шпаргалку.
 
 ## Что делает
 
@@ -12,11 +12,7 @@ Claude Skill для превращения сырого extracted-markdown ур�
 
 ## Как использовать
 
-### В Claude.ai (Projects)
-Добавьте файл `SKILL.md` в Project Knowledge вашего проекта.
-
-### В Claude Code
-Скопируйте папку в директорию skills и подключите через конфигурацию.
+Подключите папку как skill в используемой AI-среде.
 
 ## Структура
 
@@ -48,3 +44,5 @@ Markdown-файл формата `урок_N_часть_M_extracted.md`, соз�
 2. **hebrew-lesson-enrich** ← вы здесь
 3. [hebrew-homework-solve](../hebrew-homework-solve) — выполнение домашних заданий
 4. [hebrew-homework-docx](../hebrew-homework-docx) — сборка DOCX
+
+Полный автоматический цикл запускает [hebrew-homework-pipeline](../hebrew-homework-pipeline).

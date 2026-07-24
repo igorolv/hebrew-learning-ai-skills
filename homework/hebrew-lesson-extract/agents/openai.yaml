@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Lesson Extract"
+  short_description: "Извлечение урока иврита из PPTX в Markdown"
+  default_prompt: "Use $hebrew-lesson-extract to extract this Hebrew lesson PPTX into structured Markdown."

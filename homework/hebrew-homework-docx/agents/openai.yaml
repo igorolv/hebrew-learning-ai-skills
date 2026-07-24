@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Homework DOCX"
+  short_description: "Сборка решённого домашнего задания в DOCX"
+  default_prompt: "Use $hebrew-homework-docx to convert this solved Hebrew homework Markdown into DOCX."

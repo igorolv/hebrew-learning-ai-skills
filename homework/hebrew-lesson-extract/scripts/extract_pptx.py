@@ -16,11 +16,28 @@ import re
 import base64
 from pathlib import Path
 
+
+def _configure_utf8_console():
+    """Keep Hebrew/Russian paths and progress messages printable on Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
+_configure_utf8_console()
+
+
+def _normalize_text(text):
+    """Normalize PowerPoint soft line breaks before emitting Markdown."""
+    return text.replace("\r\n", "\n").replace("\r", "\n").replace("\v", "\n").replace("\f", "\n")
+
+
 try:
     from pptx import Presentation
     from pptx.enum.shapes import MSO_SHAPE_TYPE
 except ImportError:
-    print("ERROR: python-pptx not installed. Run: pip install python-pptx --break-system-packages")
+    print("ERROR: python-pptx is unavailable in the selected Python runtime.")
     sys.exit(1)
 
 
@@ -196,6 +213,13 @@ def classify_slide(texts, has_table, has_image, table_data):
         return "exercise_oged"
 
     # --- Exercise: choose correct word (תבחרו / multiple choice in parens) ---
+    noun_adjective_pairs = re.findall(
+        r'\(\s*[\u0590-\u05FF\uFB1D-\uFB4F״׳־]+\s*,\s*'
+        r'[\u0590-\u05FF\uFB1D-\uFB4F״׳־]+\s*\)',
+        all_text,
+    )
+    if has_blanks and "תבחרו" not in all_text and len(noun_adjective_pairs) >= 5:
+        return "exercise_fill"
     if "תבחרו" in all_text or "ורחבת" in all_text:
         return "exercise_choose"
     if "הנוכנה הלימב" in all_text or "הפועל הנכון" in all_text or "הצורה הנכונה" in all_text:
@@ -434,7 +458,7 @@ def extract_table(shape):
     table = shape.table
     rows = []
     for row in table.rows:
-        cells = [cell.text.strip() for cell in row.cells]
+        cells = [_normalize_text(cell.text).strip() for cell in row.cells]
         rows.append(cells)
     return rows
 
@@ -483,7 +507,7 @@ def extract_slide_content(slide, slide_idx, output_dir):
                 continue
 
             for para in shape.text_frame.paragraphs:
-                text = para.text.strip()
+                text = _normalize_text(para.text).strip()
                 if text:
                     texts.append(text)
 
@@ -511,15 +535,18 @@ def table_to_markdown(table_data):
         return ""
 
     lines = []
+    def markdown_cell(text):
+        return text.replace("|", "\\|").replace("\n", "<br>")
+
     # Header
-    header = table_data[0]
+    header = [markdown_cell(cell) for cell in table_data[0]]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("| " + " | ".join(["---"] * len(header)) + " |")
 
     # Rows
     for row in table_data[1:]:
         # Pad row if shorter than header
-        padded = row + [""] * (len(header) - len(row))
+        padded = [markdown_cell(cell) for cell in row] + [""] * (len(header) - len(row))
         lines.append("| " + " | ".join(padded[:len(header)]) + " |")
 
     return "\n".join(lines)
@@ -566,7 +593,7 @@ def format_slide_md(slide_data):
             lines.append(f"![Изображение](images/{rel_path})")
             lines.append("")
         if cat == "image_task":
-            lines.append("<!-- CLAUDE: Опиши изображение и найди различия между двумя частями картинки -->")
+            lines.append("<!-- AGENT: Опиши изображение и найди различия между двумя частями картинки -->")
             lines.append("")
 
     # Text content

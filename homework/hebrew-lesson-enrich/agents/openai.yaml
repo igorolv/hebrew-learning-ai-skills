@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Lesson Enrich"
+  short_description: "Создание грамматической шпаргалки по уроку"
+  default_prompt: "Use $hebrew-lesson-enrich to turn this extracted Hebrew lesson into a grammar cheat sheet."

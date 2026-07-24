@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hebrew Homework Pipeline"
+  short_description: "Полный цикл обработки урока и домашнего задания"
+  default_prompt: "Use $hebrew-homework-pipeline to process this Hebrew lesson PPTX into a cheat sheet and solved homework."
