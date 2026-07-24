@@ -57,8 +57,80 @@ class BuildResult:
     render_dir: Optional[Path] = None
 
 
+@dataclass(frozen=True)
+class InlineSpan:
+    text: str
+    bold: bool = False
+    code: bool = False
+
+
 def contains_hebrew(text: str) -> bool:
     return bool(HEBREW_RE.search(text or ""))
+
+
+def parse_inline_markdown(text: str) -> List[InlineSpan]:
+    """Parse the inline Markdown supported by translated chapter files.
+
+    ``**...**`` becomes a bold run. Backticks are semantic delimiters used for
+    English source fragments; they are removed while the enclosed text keeps
+    the typography dictated by its script and table column.
+    """
+    spans: List[InlineSpan] = []
+    buffer: List[str] = []
+    bold = False
+    code = False
+    i = 0
+
+    def flush() -> None:
+        if not buffer:
+            return
+        value = "".join(buffer)
+        buffer.clear()
+        if spans and spans[-1].bold == bold and spans[-1].code == code:
+            previous = spans[-1]
+            spans[-1] = InlineSpan(previous.text + value, bold=bold, code=code)
+        else:
+            spans.append(InlineSpan(value, bold=bold, code=code))
+
+    while i < len(text):
+        if text[i] == "`":
+            flush()
+            code = not code
+            i += 1
+            continue
+        if not code and text.startswith("**", i):
+            flush()
+            bold = not bold
+            i += 2
+            continue
+        buffer.append(text[i])
+        i += 1
+
+    flush()
+    if bold or code:
+        markers = []
+        if bold:
+            markers.append("**")
+        if code:
+            markers.append("`")
+        raise ValueError(
+            "ERROR: invalid inline markdown; unclosed marker(s): "
+            + ", ".join(markers)
+        )
+    return spans
+
+
+def validate_inline_markdown(pages: Sequence[PageContent]) -> None:
+    """Fail before document creation if supported inline markup is malformed."""
+    for page in pages:
+        for block in page.blocks:
+            if block.kind == "paragraph":
+                for chunk in str(block.content).split("\n"):
+                    parse_inline_markdown(chunk)
+            elif block.kind == "table":
+                for row in block.content:  # type: ignore[union-attr]
+                    for cell in row:
+                        parse_inline_markdown(cell)
 
 
 def normalize_table_row(line: str) -> List[str]:
@@ -287,6 +359,34 @@ def set_run_font(run, *, font_name: str, font_size_pt: int, rtl: bool) -> None:
     cs_el.set(qn("w:val"), "1" if rtl else "0")
 
 
+def set_run_bold(run) -> None:
+    """Set bold for both ordinary and complex-script text."""
+    run.bold = True
+    r_pr = run._r.get_or_add_rPr()
+    b_cs = r_pr.find(qn("w:bCs"))
+    if b_cs is None:
+        b_cs = OxmlElement("w:bCs")
+        r_pr.append(b_cs)
+    b_cs.set(qn("w:val"), "1")
+
+
+def add_formatted_run(
+    paragraph,
+    text: str,
+    *,
+    font_name: str,
+    font_size_pt: int,
+    rtl: bool,
+    bold: bool,
+) -> None:
+    if not text:
+        return
+    run = paragraph.add_run(text)
+    set_run_font(run, font_name=font_name, font_size_pt=font_size_pt, rtl=rtl)
+    if bold:
+        set_run_bold(run)
+
+
 def style_ltr_paragraph_with_hebrew_fragments(paragraph, text: str) -> None:
     """Оформляет русский/английский текст с отдельными ивритскими фрагментами.
 
@@ -298,14 +398,28 @@ def style_ltr_paragraph_with_hebrew_fragments(paragraph, text: str) -> None:
     paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
     set_paragraph_bidi(paragraph, False)
 
-    for part in HEBREW_FRAGMENT_RE.split(text):
-        if not part:
-            continue
-        run = paragraph.add_run(part)
-        if HEBREW_FRAGMENT_RE.fullmatch(part):
-            set_run_font(run, font_name="David", font_size_pt=18, rtl=True)
-        else:
-            set_run_font(run, font_name="Times New Roman", font_size_pt=12, rtl=False)
+    for span in parse_inline_markdown(text):
+        for part in HEBREW_FRAGMENT_RE.split(span.text):
+            if not part:
+                continue
+            if HEBREW_FRAGMENT_RE.fullmatch(part):
+                add_formatted_run(
+                    paragraph,
+                    part,
+                    font_name="David",
+                    font_size_pt=18,
+                    rtl=True,
+                    bold=span.bold,
+                )
+            else:
+                add_formatted_run(
+                    paragraph,
+                    part,
+                    font_name="Times New Roman",
+                    font_size_pt=12,
+                    rtl=False,
+                    bold=span.bold,
+                )
 
     paragraph.paragraph_format.space_after = Pt(6)
     paragraph.paragraph_format.space_before = Pt(0)
@@ -321,15 +435,30 @@ def style_paragraph_text(paragraph, text: str, force_hebrew: Optional[bool] = No
         return
 
     paragraph.text = ""
-    run = paragraph.add_run(text)
     if has_hebrew:
         set_paragraph_bidi(paragraph, True)
         set_paragraph_jc(paragraph, "start")
-        set_run_font(run, font_name="David", font_size_pt=18, rtl=True)
+        for span in parse_inline_markdown(text):
+            add_formatted_run(
+                paragraph,
+                span.text,
+                font_name="David",
+                font_size_pt=18,
+                rtl=True,
+                bold=span.bold,
+            )
     else:
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         set_paragraph_bidi(paragraph, False)
-        set_run_font(run, font_name="Times New Roman", font_size_pt=12, rtl=False)
+        for span in parse_inline_markdown(text):
+            add_formatted_run(
+                paragraph,
+                span.text,
+                font_name="Times New Roman",
+                font_size_pt=12,
+                rtl=False,
+                bold=span.bold,
+            )
 
     paragraph.paragraph_format.space_after = Pt(6)
     paragraph.paragraph_format.space_before = Pt(0)
@@ -348,15 +477,29 @@ def style_hebrew_paren_cell(paragraph, text: str) -> None:
     paragraph.text = ""
     set_paragraph_bidi(paragraph, True)
     set_paragraph_jc(paragraph, "start")
-    for part in PAREN_RE.split(text):
-        if part == "":
-            continue
-        run = paragraph.add_run(part)
-        in_paren = part.startswith("(") and part.endswith(")")
-        if in_paren or not contains_hebrew(part):
-            set_run_font(run, font_name="Times New Roman", font_size_pt=12, rtl=False)
-        else:
-            set_run_font(run, font_name="David", font_size_pt=18, rtl=True)
+    for span in parse_inline_markdown(text):
+        for part in PAREN_RE.split(span.text):
+            if part == "":
+                continue
+            in_paren = part.startswith("(") and part.endswith(")")
+            if in_paren or not contains_hebrew(part):
+                add_formatted_run(
+                    paragraph,
+                    part,
+                    font_name="Times New Roman",
+                    font_size_pt=12,
+                    rtl=False,
+                    bold=span.bold,
+                )
+            else:
+                add_formatted_run(
+                    paragraph,
+                    part,
+                    font_name="David",
+                    font_size_pt=18,
+                    rtl=True,
+                    bold=span.bold,
+                )
 
     paragraph.paragraph_format.space_after = Pt(6)
     paragraph.paragraph_format.space_before = Pt(0)
@@ -524,6 +667,7 @@ def build_docx(
 ) -> BuildResult:
     pages = parse_markdown(md_path.read_text(encoding="utf-8"))
     image_map = validate_inputs(md_path, pages, image_paths)
+    validate_inline_markdown(pages)
 
     document = Document()
     set_document_defaults(document)
