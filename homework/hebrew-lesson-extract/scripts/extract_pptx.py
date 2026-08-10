@@ -35,7 +35,6 @@ def _normalize_text(text):
 
 try:
     from pptx import Presentation
-    from pptx.enum.shapes import MSO_SHAPE_TYPE
 except ImportError:
     print("ERROR: python-pptx is unavailable in the selected Python runtime.")
     sys.exit(1)
@@ -453,6 +452,24 @@ def classify_slide(texts, has_table, has_image, table_data):
     return "other"
 
 
+def _is_picture(shape):
+    """Detect any picture shape, including pictures placed into a placeholder.
+
+    `shape.shape_type` reports PLACEHOLDER (not PICTURE) when the image was
+    inserted into a picture/content placeholder, so the enum check silently
+    misses those. The underlying element is `<p:pic>` in both cases.
+    """
+    return shape._element.tag.endswith("}pic")
+
+
+def _picture_extension(image):
+    """Canonical file extension for an extracted image."""
+    ext = (getattr(image, "ext", None) or "").lstrip(".").lower()
+    if not ext:
+        ext = image.content_type.split("/")[-1].lower()
+    return "jpg" if ext == "jpeg" else ext
+
+
 def extract_table(shape):
     """Extract table data as list of lists."""
     table = shape.table
@@ -471,12 +488,10 @@ def extract_images(slide, slide_idx, output_dir):
     image_paths = []
     img_count = 0
     for shape in slide.shapes:
-        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+        if _is_picture(shape):
             img_count += 1
             image = shape.image
-            ext = image.content_type.split("/")[-1]
-            if ext == "jpeg":
-                ext = "jpg"
+            ext = _picture_extension(image)
             filename = f"slide_{slide_idx + 1}_img_{img_count}.{ext}"
             filepath = os.path.join(images_dir, filename)
             with open(filepath, "wb") as f:
@@ -494,7 +509,7 @@ def extract_slide_content(slide, slide_idx, output_dir):
     image_paths = []
 
     for shape in slide.shapes:
-        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+        if _is_picture(shape):
             has_image = True
 
         if shape.has_text_frame:
