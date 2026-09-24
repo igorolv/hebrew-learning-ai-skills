@@ -90,7 +90,7 @@ class InlineMarkdownTests(unittest.TestCase):
             md_path.write_text(markdown, encoding="utf-8")
             image_path.write_bytes(png)
 
-            MODULE.build_docx(md_path, [image_path], output_path, render=False)
+            MODULE.build_docx(md_path, [image_path], output_path)
 
             document = Document(output_path)
             all_text = [paragraph.text for paragraph in document.paragraphs]
@@ -115,7 +115,7 @@ class InlineMarkdownTests(unittest.TestCase):
             image_path.write_bytes(b"placeholder")
 
             with self.assertRaisesRegex(ValueError, "invalid inline markdown"):
-                MODULE.build_docx(md_path, [image_path], output_path, render=False)
+                MODULE.build_docx(md_path, [image_path], output_path)
             self.assertFalse(output_path.exists())
 
 

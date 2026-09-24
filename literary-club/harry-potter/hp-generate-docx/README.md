@@ -9,6 +9,7 @@ Claude Skill для преобразования учебных markdown-фай�
 - Вставляет иллюстрации на каждую страницу
 - Конвертирует markdown-таблицы в таблицы Word
 - Проставляет разрывы страниц между секциями
+- Проверяет структурные инварианты готового DOCX без визуального рендера
 
 ## Как использовать
 
@@ -25,7 +26,8 @@ hp-generate-docx/
 ├── SKILL.md                — основная инструкция
 ├── README.md
 ├── scripts/
-│   └── build_hp_docx.py    — скрипт генерации DOCX
+│   ├── build_hp_docx.py       — скрипт генерации DOCX
+│   └── validate_hp_docx.py    — структурная проверка OOXML
 └── references/
     ├── HP_ch1_30_35_translate.md    — образец входного файла (стр. 30–35)
     └── HP_ch1_36_37_translate.md    — образец входного файла (стр. 36–37)
@@ -44,7 +46,7 @@ hp-generate-docx/
 pip install python-docx
 ```
 
-Базовый запуск (с рендером через LibreOffice):
+Базовый запуск:
 
 ```bash
 python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png
@@ -56,11 +58,14 @@ python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch
 python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png -o out.docx
 ```
 
-Без рендера через LibreOffice:
+Отдельная повторная проверка готового файла:
 
 ```bash
-python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png --no-render
+python3 scripts/validate_hp_docx.py out.docx --markdown HP_ch3_1_2_translate.md
 ```
+
+Сборщик автоматически запускает этот валидатор перед публикацией итогового файла.
+LibreOffice и Word не используются.
 
 Имя выходного файла формируется автоматически: `HP_ch3_1_2_translate.md` → `Гарри Поттер глава 3 страницы 1-2.docx`.
 

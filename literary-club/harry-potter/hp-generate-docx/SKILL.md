@@ -429,17 +429,22 @@ ERROR: invalid markdown table
 
 # Проверка выхода
 
-После генерации DOCX проверить:
+После сохранения временного DOCX `build_hp_docx.py` автоматически запускает
+`scripts/validate_hp_docx.py`. Валидатор проверяет только структурные инварианты,
+которые зависят от фактически записанного OOXML:
 
-- [ ] Документ открывается без ошибок
-- [ ] Каждая страница начинается с нового листа Word
-- [ ] Иллюстрация присутствует на каждой странице
-- [ ] Иврит отображается шрифтом David, 18pt, выравнивание вправо, RTL
-- [ ] Заголовки секций (## Иврит, ## Подстрочный перевод и т.д.) удалены
-- [ ] Таблицы не разорваны между страницами
-- [ ] Смешанный текст (иврит + русский в одной ячейке) корректно отформатирован
-- [ ] `**...**` преобразовано в жирные runs, включая `w:bCs` для иврита
-- [ ] В тексте DOCX нет видимых Markdown-маркеров `**` и обратных кавычек
+- DOCX открывается как корректный пакет Word;
+- заголовки страниц идут в ожидаемом порядке, перед каждой страницей после первой
+  установлен `pageBreakBefore`, а иллюстрация следует сразу за заголовком;
+- количество иллюстраций и таблиц совпадает с исходным markdown;
+- таблицы имеют `AutoFit = Fixed`, явную ширину 100%, равномерную сетку колонок
+  на всю текстовую область и `cantSplit` у каждой строки;
+- каждый ивритский run имеет David 18 pt, `rtl`, `cs`, а жирный run также `bCs`;
+- преимущественно ивритские абзацы имеют RTL и выравнивание вправо;
+- заголовки секций и видимые Markdown-маркеры удалены.
+
+Рендер через LibreOffice или Word и визуальная проверка не выполняются и не
+являются частью этого скилла.
 
 ---
 
@@ -455,7 +460,9 @@ ERROR: invalid markdown table
 
 # Скрипт
 
-Генерация реализована скриптом `scripts/build_hp_docx.py`.
+Генерация реализована скриптом `scripts/build_hp_docx.py`, структурная проверка —
+скриптом `scripts/validate_hp_docx.py`. Сборщик сохраняет результат во временный
+DOCX, запускает валидатор и только после успешной проверки публикует итоговый файл.
 
 Зависимости:
 
@@ -466,7 +473,7 @@ pip install python-docx
 Запуск:
 
 ```bash
-python3 scripts/build_hp_docx.py <markdown> <image1.png> [<image2.png> ...] [-o output.docx] [--no-render]
+python3 scripts/build_hp_docx.py <markdown> <image1.png> [<image2.png> ...] [-o output.docx]
 ```
 
 Примеры:
@@ -474,10 +481,13 @@ python3 scripts/build_hp_docx.py <markdown> <image1.png> [<image2.png> ...] [-o 
 ```bash
 python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png
 python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png -o out.docx
-python3 scripts/build_hp_docx.py HP_ch3_1_2_translate.md HP_ch3_page_1.png HP_ch3_page_2.png --no-render
 ```
 
-По умолчанию после генерации DOCX запускается рендер через LibreOffice. Флаг `--no-render` пропускает этот шаг.
+Отдельный запуск валидатора:
+
+```bash
+python3 scripts/validate_hp_docx.py out.docx --markdown HP_ch3_1_2_translate.md
+```
 
 ---
 

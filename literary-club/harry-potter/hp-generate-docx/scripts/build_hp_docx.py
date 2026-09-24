@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import argparse
-import math
-import os
 import re
-import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
@@ -17,6 +15,13 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from validate_hp_docx import validate_docx
 
 
 HEBREW_RE = re.compile(r"[\u0590-\u05FF]")
@@ -54,7 +59,6 @@ class PageContent:
 @dataclass
 class BuildResult:
     output_docx: Path
-    render_dir: Optional[Path] = None
 
 
 @dataclass(frozen=True)
@@ -580,7 +584,18 @@ def build_table(
     tbl_layout.set(qn("w:type"), "fixed")
 
     table_width_twips = get_text_width_twips(document)
-    col_width = max(1, math.floor(table_width_twips / col_count))
+    tbl_width = tbl_pr.find(qn("w:tblW"))
+    if tbl_width is None:
+        tbl_width = OxmlElement("w:tblW")
+        tbl_pr.append(tbl_width)
+    tbl_width.set(qn("w:w"), "5000")
+    tbl_width.set(qn("w:type"), "pct")
+
+    base_width, remainder = divmod(table_width_twips, col_count)
+    col_widths = [max(1, base_width + (1 if idx < remainder else 0)) for idx in range(col_count)]
+    grid_cols = table._tbl.tblGrid.findall(qn("w:gridCol"))
+    for col_idx, grid_col in enumerate(grid_cols):
+        grid_col.set(qn("w:w"), str(col_widths[col_idx]))
 
     for row_idx, row_data in enumerate(rows):
         row = table.rows[row_idx]
@@ -588,7 +603,7 @@ def build_table(
         set_row_no_break(row)
         for col_idx in range(col_count):
             cell = row.cells[col_idx]
-            set_cell_width(cell, col_width)
+            set_cell_width(cell, col_widths[col_idx])
             cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             tc_pr = cell._tc.get_or_add_tcPr()
             no_wrap = tc_pr.find(qn("w:noWrap"))
@@ -634,36 +649,10 @@ def derive_output_name(md_path: Path) -> str:
     return f"{md_path.stem}.docx"
 
 
-def render_docx(docx_path: Path, out_dir: Path) -> None:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    env = os.environ.copy()
-    profile_dir = out_dir / "lo_profile"
-    profile_dir.mkdir(parents=True, exist_ok=True)
-    env["HOME"] = str(profile_dir)
-    subprocess.run(
-        [
-            "libreoffice",
-            "--headless",
-            f"-env:UserInstallation=file://{profile_dir}",
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            str(out_dir),
-            str(docx_path),
-        ],
-        check=True,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-
-
 def build_docx(
     md_path: Path,
     image_paths: Sequence[Path],
     output_path: Optional[Path],
-    render: bool,
 ) -> BuildResult:
     pages = parse_markdown(md_path.read_text(encoding="utf-8"))
     image_map = validate_inputs(md_path, pages, image_paths)
@@ -712,14 +701,34 @@ def build_docx(
                 build_table(document, block.content, col_modes=col_modes)  # type: ignore[arg-type]
 
     out_path = output_path or (md_path.parent / derive_output_name(md_path))
-    document.save(str(out_path))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    render_dir = None
-    if render:
-        render_dir = out_path.with_suffix("")
-        render_docx(out_path, render_dir)
+    expected_table_count = sum(
+        1 for page in pages for block in page.blocks if block.kind == "table"
+    )
+    temp_path: Optional[Path] = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{out_path.stem}-",
+            suffix=".docx",
+            dir=out_path.parent,
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
 
-    return BuildResult(output_docx=out_path, render_dir=render_dir)
+        document.save(str(temp_path))
+        validate_docx(
+            temp_path,
+            expected_pages=[page.number for page in pages],
+            expected_table_count=expected_table_count,
+        )
+        temp_path.replace(out_path)
+    except Exception:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+        raise
+
+    return BuildResult(output_docx=out_path)
 
 
 def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
@@ -732,7 +741,6 @@ def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
         help="PNG illustrations named HP_ch{CHAPTER}_page_{PAGE}.png",
     )
     parser.add_argument("-o", "--output", type=Path, help="Output DOCX path")
-    parser.add_argument("--no-render", action="store_true", help="Skip LibreOffice PDF render")
     return parser.parse_args(argv)
 
 
@@ -743,14 +751,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             md_path=args.markdown,
             image_paths=args.images,
             output_path=args.output,
-            render=not args.no_render,
         )
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     print(f"DOCX: {result.output_docx}")
-    if result.render_dir:
-        print(f"RENDER_DIR: {result.render_dir}")
     return 0
 
 
