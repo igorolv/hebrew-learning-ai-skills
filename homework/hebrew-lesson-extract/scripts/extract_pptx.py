@@ -33,6 +33,135 @@ def _normalize_text(text):
     return text.replace("\r\n", "\n").replace("\r", "\n").replace("\v", "\n").replace("\f", "\n")
 
 
+_A_NS = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+
+# Shapes whose top edges differ by less than this are treated as one visual row (~0.5 cm).
+_ROW_TOLERANCE_EMU = 180000
+
+_HEBREW_UNITS = "אבגדהוזחט"
+_HEBREW_TENS = "יכלמנסעפצ"
+
+
+def _hebrew_numeral(n):
+    """Hebrew letter numbering (1..99), as PowerPoint's hebrew2* schemes render it."""
+    if n == 15:
+        return "טו"
+    if n == 16:
+        return "טז"
+    tens, units = divmod(n, 10)
+    result = _HEBREW_TENS[tens - 1] if 0 < tens <= 9 else ""
+    return result + (_HEBREW_UNITS[units - 1] if units else "")
+
+
+def _roman_numeral(n):
+    pairs = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+             (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+    result = ""
+    for value, letters in pairs:
+        while n >= value:
+            result += letters
+            n -= value
+    return result
+
+
+def _autonum_label(scheme, n):
+    """Render a PowerPoint buAutoNum label, e.g. arabicPeriod/3 → '3.'.
+
+    Unknown schemes fall back to arabic digits with a period so that downstream
+    item inventory (`N.` at line start) keeps working.
+    """
+    match = re.match(r'(arabic|alphaLc|alphaUc|romanLc|romanUc|hebrew2)(Period|ParenR|ParenBoth|Plain|Minus)$',
+                     scheme or "")
+    if not match:
+        return f"{n}."
+    kind, suffix = match.groups()
+    if kind == "arabic":
+        body = str(n)
+    elif kind == "alphaLc":
+        body = chr(ord("a") + (n - 1) % 26)
+    elif kind == "alphaUc":
+        body = chr(ord("A") + (n - 1) % 26)
+    elif kind == "romanLc":
+        body = _roman_numeral(n).lower()
+    elif kind == "romanUc":
+        body = _roman_numeral(n)
+    else:
+        body = _hebrew_numeral(n)
+    return {"Period": f"{body}.", "ParenR": f"{body})", "ParenBoth": f"({body})",
+            "Plain": body, "Minus": f"{body}-"}[suffix]
+
+
+def _paragraph_texts(text_frame):
+    """Return non-empty paragraph texts, materializing PowerPoint auto-numbering.
+
+    Auto-numbered lists (`a:buAutoNum`) keep the number out of the paragraph text,
+    so python-pptx alone loses it. Numbering restarts after an unnumbered paragraph
+    at the same or a shallower level, mirroring PowerPoint.
+    """
+    texts = []
+    counters = {}  # level -> (scheme, last number)
+    for para in text_frame.paragraphs:
+        text = _normalize_text(para.text).strip()
+        if not text:
+            continue
+        p_pr = para._p.find(_A_NS + "pPr")
+        level = int(p_pr.get("lvl", "0")) if p_pr is not None else 0
+        autonum = p_pr.find(_A_NS + "buAutoNum") if p_pr is not None else None
+
+        for deeper in [lvl for lvl in counters if lvl > level]:
+            del counters[deeper]
+
+        if autonum is None:
+            counters.pop(level, None)
+            texts.append(text)
+            continue
+
+        scheme = autonum.get("type", "arabicPeriod")
+        previous = counters.get(level)
+        if previous and previous[0] == scheme:
+            number = previous[1] + 1
+        else:
+            number = int(autonum.get("startAt", "1"))
+        counters[level] = (scheme, number)
+
+        # Do not double-number paragraphs where the author also typed the number.
+        if not re.match(r'^\(?\d{1,3}[\.\)]', text):
+            text = f"{_autonum_label(scheme, number)} {text}"
+        texts.append(text)
+    return texts
+
+
+def _reading_order(shapes):
+    """Order shapes top-to-bottom; shapes in the same visual row go right-to-left (RTL).
+
+    `slide.shapes` follows z-order (creation order), which often puts an instruction
+    box after the exercise it introduces.
+    """
+    def top(shape):
+        return shape.top if shape.top is not None else 0
+
+    def right_edge(shape):
+        return (shape.left or 0) + (shape.width or 0)
+
+    rows = []
+    for shape in sorted(shapes, key=top):
+        if rows and top(shape) - top(rows[-1][0]) <= _ROW_TOLERANCE_EMU:
+            rows[-1].append(shape)
+        else:
+            rows.append([shape])
+    return [shape for row in rows for shape in sorted(row, key=right_edge, reverse=True)]
+
+
+def _contains_hebrew_word(text, words):
+    """Whole-word match for Hebrew markers, allowing up to two one-letter prefixes (ו, ה, ב...).
+
+    Plain substring search misfires: 'חידה' (riddle) is inside 'מפחידה' (frightens).
+    """
+    alternatives = "|".join(re.escape(word) for word in words)
+    pattern = r'(?<![א-ת])[והבלמשכ]{0,2}(?:' + alternatives + r')(?![א-ת])'
+    return bool(re.search(pattern, text))
+
+
 try:
     from pptx import Presentation
 except ImportError:
@@ -121,7 +250,8 @@ def classify_slide(texts, has_table, has_image, table_data):
     - exercise_choose: choose the correct word from options
     - exercise_oged: אוגד exercises (specifically)
     - exercise_morphology: determine root/binyan/gzara from a verb form
-    - exercise_transform: rewrite sentence in different tense (no blanks)
+    - exercise_transform: rewrite/rebuild sentences (other tense or construction,
+      word order); blanks, if any, only mark where to write the result
     - exercise_writing: write a composition (חיבור)
     - exercise_questions: answer questions about a text
     - reading: reading text (long Hebrew text, dialog, story)
@@ -210,6 +340,15 @@ def classify_slide(texts, has_table, has_image, table_data):
     # --- Exercise: oged (ONLY when אוגד is explicitly mentioned) ---
     if ("אוגד" in all_text or "דגוא" in all_text) and has_blanks:
         return "exercise_oged"
+
+    # --- Exercise: transform (rewrite / rebuild sentences) ---
+    # Checked before blank-based rules: blanks here mark where to write the rewritten
+    # sentence, not a word to insert. Tables with many empty cells stay exercise_table.
+    transform_markers = ["הפכו", "אמרו שוב", "סדרו את המילים", "כתבו מחדש"]
+    if not (has_table and total_empty_cells > 3):
+        if (any(marker in all_text for marker in transform_markers) or
+                re.search(r'כתבו את המשפטים ב', all_text)):
+            return "exercise_transform"
 
     # --- Exercise: choose correct word (תבחרו / multiple choice in parens) ---
     noun_adjective_pairs = re.findall(
@@ -363,7 +502,7 @@ def classify_slide(texts, has_table, has_image, table_data):
                 return "exercise_translate"
 
     # ==================================================================
-    # PHASE 6: Exercise transform (rewrite in different tense, no blanks)
+    # PHASE 6: Exercise transform without explicit rewrite markers (no blanks)
     # ==================================================================
     if "תשלימו" in all_text or "ומילשת" in all_text:
         # Has instruction but NO blanks — likely a transform exercise
@@ -388,7 +527,7 @@ def classify_slide(texts, has_table, has_image, table_data):
     # ==================================================================
     joke_markers = ["גולם", "חושם", "חלם", "לבהא", "חידה", "חידות",
                     "םלוג", "םשוח", "םלח"]
-    if any(m in all_text for m in joke_markers):
+    if _contains_hebrew_word(all_text, joke_markers):
         if len(all_text) > 200:
             return "joke"
 
@@ -508,7 +647,7 @@ def extract_slide_content(slide, slide_idx, output_dir):
     has_image = False
     image_paths = []
 
-    for shape in slide.shapes:
+    for shape in _reading_order(slide.shapes):
         if _is_picture(shape):
             has_image = True
 
@@ -521,10 +660,7 @@ def extract_slide_content(slide, slide_idx, output_dir):
             if is_placeholder:
                 continue
 
-            for para in shape.text_frame.paragraphs:
-                text = _normalize_text(para.text).strip()
-                if text:
-                    texts.append(text)
+            texts.extend(_paragraph_texts(shape.text_frame))
 
         if shape.has_table:
             tables.append(extract_table(shape))
